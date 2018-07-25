@@ -1,0 +1,370 @@
+\documentclass[twoside]{article}
+
+\usepackage{amsmath,amsthm,amssymb,epsfig}
+
+\theoremstyle{definition}
+\newtheorem{thm}{Theorem}[section]
+\newtheorem{lem}[thm]{Lemma}
+\newtheorem{prop}[thm]{Proposition}
+\newtheorem{cor}[thm]{Corollary}
+\newenvironment{pf}{{\noindent\sc Proof. }}{\qed}
+\newenvironment{map}{\[\begin{array}{cccc}} {\end{array}\]}
+
+\theoremstyle{definition}
+\newtheorem*{defn}{Definition}
+\newtheorem*{exmp}{Example}
+\newtheorem*{prob}{Problem}
+
+\theoremstyle{remark}
+\newtheorem*{rem}{Remark}
+\newtheorem*{note}{Note}
+\newtheorem*{exer}{Exercise}
+
+\setlength{\oddsidemargin}{0.25 in}
+\setlength{\evensidemargin}{-0.25 in}
+\setlength{\topmargin}{-0.6 in}
+\setlength{\textwidth}{6.5 in}
+\setlength{\textheight}{8.5 in}
+\setlength{\headsep}{0.75 in}
+\setlength{\parindent}{0 in}
+\setlength{\parskip}{0.1 in}
+
+\newcommand{\lecture}[4]{
+   \pagestyle{myheadings}
+   \thispagestyle{plain}
+   \newpage
+   \setcounter{page}{1}
+   \noindent
+   \begin{center}
+   \framebox{
+      \vbox{\vspace{2mm}
+    \hbox to 6.28in { {\bf CS281B/Stat241B (Spring 2008) Statistical Learning Theory \hfill Lecture: #4} }
+       \vspace{6mm}
+       \hbox to 6.28in { {\Large \hfill #1  \hfill} }
+       \vspace{6mm}
+       \hbox to 6.28in { {\it Lecturer: #2 \hfill Scribe: #3} }
+      \vspace{2mm}}
+   }
+   \end{center}
+   \markboth{#1}{#1}
+   \vspace*{4mm}
+}
+
+
+%%%%%%%
+% Some commonly used notation
+%%%%%%%
+
+\def\R{{\mathbb R}}
+\def\X{{\mathcal X}}
+\def\Y{{\mathcal Y}}
+\def\E{{\mathbb E}}
+\def\sign{{\rm sign}}
+
+\begin{document}
+
+\lecture{Overview plus probabilistic formulations of prediction
+problems}{Peter Bartlett}{Peter Bartlett}{1}
+%%%%%%%%%%%%%%%%%%%%%%%%%scribe^name^here%%^lecture number
+
+\section{Organizational issues}
+
+The course web page is at
+http://www.cs.berkeley.edu/$\sim$bartlett/courses/281b-sp08/\\
+See the web page for details of office hours, the syllabus,
+assignments, readings, lecture notes, and announcements.
+
+\subsection{Assignments}
+
+There will be roughly five homework assignments, approximately one
+every two weeks. The first has been posted on the web site. It is due
+at the lecture on Thursday, January 31.
+You will also need to act as scribe for a small number of lectures,
+preparing a latex version of lecture notes. There is a template on the
+web site, and the latex file of the lecture notes for this lecture.
+(Please email the GSI, David, to choose the lecture that you'd like
+to prepare lecture notes for.)
+Also, there will be a final project, in an area related to the topics of
+the course.
+
+\section{Overview}
+
+The course will focus on the theoretical analysis of prediction
+methods.
+\begin{enumerate}
+  \item Probabilistic formulation of prediction problems 
+  \item Algorithms:
+    \begin{enumerate}
+      \item Kernel methods 
+      \item Boosting algorithms
+    \end{enumerate}
+  \item Risk bounds
+  \item Game theoretic formulation of prediction problems 
+  \item Model selection
+\end{enumerate}
+
+\section{Probabilistic Formulations of Prediction Problems}
+
+In a prediction problem, we wish to predict an outcome $y$ from some
+set $\Y$ of possible outcomes, on the basis of some observation $x$
+from a feature space $\X$. Some examples:\\
+\begin{tabular}{|l|l|}
+\hline
+$x$	&	$y$ \\
+\hline
+phylogenetic profile
+of a gene
+& gene function \\
+(i.e., relationship to genomes of other species) & \\
+gene expression levels of a tissue sample
+& patient disease state \\
+image of a signature on a check
+& identity of the writer \\
+email message
+& spam or ham\\
+\hline
+\end{tabular}
+
+For such problems, we might have access to a data set of $n$ pairs,
+$(x_1,y_1), \ldots,(x_n,y_n)$, and we would like to use the data to
+produce a function $f:\X\to\Y$ so that, for subsequent $(x,y)$ pairs,
+$f(x)$ is a good prediction of $y$.
+
+To define the notion of a `good prediction,' we can define a loss
+function $\ell:\Y\times\Y\to\R$, so that $\ell(\hat y, y)$
+quantifies the cost of
+predicting $\hat y$ when the true outcome is $y$. Then the
+aim is to ensure that $\ell(f(x),y)$ is
+small. For instance, in {\em pattern classification} problems, the
+aim is to classify an $x$ into one of a finite number of classes (that
+is, the label space $\Y$ is finite). If all mistakes are
+equally bad, we could define
+  \[
+    \ell(\hat y,y) = 1[\hat y\not=y]
+    =\begin{cases}
+    1 & \text{if $\hat y\not= y$,}\\
+    0 & \text{otherwise.}\end{cases}
+  \]
+As another example, in a {\em regression} problem, with $\Y=\R$, we might
+choose the quadratic loss function, $\ell(\hat y,y)=(\hat y-y)^2$.
+
+We can formulate such problems using probabilistic assumptions:
+we assume that there is a probability distribution $P$ on
+$\X\times\Y$, and that the pairs $(X_1,Y_1),\ldots,(X_n,Y_n),(X,Y)$
+are chosen independently according to $P$. The aim is to choose $f$ so
+that the {\em risk} of $f$,
+\[
+  R(f) = \E\ell(f(X),Y),
+\]
+is small. For instance, in the pattern classification example,
+this is the misclassification probability.
+\[
+  R(f) = \E 1[f(X)\not=Y] = \Pr(f(X)\not=Y).
+\]
+
+Some things to notice:
+  \begin{enumerate}
+    \item We are using capital letters to denote random variables.
+    \item The distribution $P$ can be viewed as modelling both
+    the relative frequency of different features or covariates
+    $X$, together with the conditional distribution of the outcome
+    $Y$ given $X$.
+    \item The assumption that the data is i.i.d.~is a strong one.
+    \item The function $x\mapsto f_n(x)=f_n(x;
+    X_1,Y_1,\ldots,X_n,Y_n)$ is random, since it depends on the random
+    $(X_i,Y_i)$. Thus, the risk
+      \begin{align*}
+        R(f_n)
+        & = \E\left[\ell(f_n(X),Y)|
+	  X_1,Y_1,\ldots,X_n,Y_n\right] \\
+	& = \E\left[\ell(f_n(X;X_1,Y_1,\ldots,X_n,Y_n),Y)|
+	  X_1,Y_1,\ldots,X_n,Y_n\right]
+      \end{align*}
+    is a random variable. We might aim for $\E R(f_n)$ small, or
+    $R(f_n)$ small with high probability (over the training data).
+  \end{enumerate}
+
+We might choose $f_n$ from some class $F$ of functions, for
+instance, by choosing the structure and parameters of a decision
+tree, or by choosing the parameters of a neural net or a kernel
+machine.
+
+There are several questions that we are interested in:
+  \begin{enumerate}
+    \item Can we design algorithms for which $f_n$ is
+    close to the best that we could hope for, given that it was chosen
+    from $F$? (that is, is $R(f_n)-\inf_{f\in F}R(f)$ small?)
+    \item How does the performance of $f_n$ depend on $n$? On other
+    parameters of the problem?
+    \item Can we ensure that $R(f_n)$ approaches the best possible
+    performance (that is, the infimum over all $f$ of $R(f)$)?
+    \item What do we need to assume about $P$? About $F$?
+  \end{enumerate}
+
+In this course, we are concerned with results that apply to
+large classes of distributions $P$, such as the set of {\em all}
+joint distributions on $\X\times\Y$. In contrast to parametric
+problems, we will not (often) assume that $P$ comes from a small
+(e.g., finite-dimensional) space, $P\in \{P_\theta:\theta\in\Theta\}$.
+
+Several key issues arise in designing a prediction method for these
+problems:
+
+ \begin{description}
+   \item[Approximation] How good is the best $f$ in the class $F$ that
+   we are using? That is, how close to $\inf_f R(f)$ is $\inf_{f\in F}
+   R(f)$?
+   \item[Estimation] Since we only have access to the distribution $P$
+   through observing a finite data set, how close is our performance
+   to that of the best $f$ in $F$?
+   \item[Computation] We need to use the data to choose $f_n$,
+   typically through solving some kind of optimization problem. How
+   can we do that efficiently?
+ \end{description}
+
+In this course, we will not spend much time on the approximation
+properties, beyond observing some universality results (that
+particular classes can achieve zero approximation error). We will
+focus on the estimation issue. We will take the approach that
+efficiency of computation is a constraint. Indeed, the methods
+that we spend most of our time studying involve convex optimization
+problems. (For example, kernel methods involve solving a quadratic
+program, and boosting algorithms involve minimizing a convex criterion in
+a convex set.)
+
+\section{The Probabilistic Formulation of Pattern Classification
+Problems}
+
+Assume, for simplicity, that $\Y=\{\pm 1\}$ (We'll consider extensions
+of the results of this lecture to the multi-class case in a
+homework problem.)
+Let's fix some notation: We'll represent the joint distribution $P$ on
+$\X\times\Y$ as the pair $(\mu,\eta)$, where $\mu$ is the marginal
+distribution on $\X$ and $\eta$ is the conditional expectation
+of $Y$ given $X$,
+  \[
+    \eta(x) = \E(Y|X=x) = P(Y=1|X=x).
+  \]
+If we knew $\eta$, we could use it to find a decision function that
+minimized risk. To see this, notice that we can write the expected
+loss as an expectation of a conditional expectation,
+  \begin{align}
+    R(f) & = \E\ell(f(X),Y) \notag\\
+         & = \E\E[\ell(f(X),Y)|X] \notag\\
+         & = \E\left(\ell(f(X),1)P(Y=1|X) +
+         \ell(f(X),-1)P(Y=-1|X)\right) \notag\\
+         & = \E\left(1[f(X)\not =1)\eta(X) +
+         1[f(X)\not=-1)(1-\eta(X))\right) \notag\\
+         & = \E\left(1[f(X)\not =1)\eta(X) +
+         (1-1[f(X)\not=1])(1-\eta(X))\right) \notag\\
+         & = \E\left(1[f(X)\not =1)(2\eta(X)-1) +
+         1-\eta(X)\right). \label{eqn:Rfeta}
+  \end{align}
+Clearly, this expectation is minimized by choosing $f(x)=1$ when
+$\eta(x)>1/2$ and $f(x)=-1$ when
+$\eta(x)<1/2$. Obviously, if $\eta(x)=1/2$, the choice does not affect
+the risk. Let's define $f^*$ as a function of this kind:
+  \[
+    f^*(x) = \begin{cases} 1 & \text{if $\eta(x)\ge 1/2$,}\\
+    -1 & \text{otherwise.}\end{cases}
+  \]
+Denote the optimal risk (the {\em Bayes risk}), by $R^*=\inf_f
+R(f)$. We have shown that $f^*$ achieves the Bayes risk. It is called
+the {\em Bayes decision function}.
+
+Notice that any choice for $f^*(x)$ is equally
+good when $\eta(x)=1/2$, so there can be several Bayes decision
+functions.
+
+The following theorem shows something a little stronger:
+that the amount by which the risk of any other decision function
+exceeds the Bayes risk can be quantified in terms of a certain
+distance from $f^*$.  (Actually, it's not quite a distance, since
+differences between functions
+at an $x$ with $\eta(x)=1/2$ have no influence on the risk.)
+
+\begin{thm}
+  For any $f:\X\to\Y$,
+    \[
+      R(f)-R(f^*) = \E\left(1[f(X)\not=f^*(X)]|2\eta(X)-1|\right).
+    \]
+\end{thm}
+
+\begin{pf}
+  Using the identity \eqref{eqn:Rfeta}, we have
+    \[
+      R(f) - R(f^*) = \E \left(1[f(X)\not =1]
+          -1[f^*(X)\not=1]\right)(2\eta(X)-1).
+    \]
+  But
+    \begin{align*}
+      \lefteqn{\left(1[f(X)\not =1]
+          -1[f^*(X)\not=1]\right)(2\eta(X)-1)} & \\
+      & = 1[f(X)\not=f^*(X)] \left(1[f(X)\not =1]
+          -1[f^*(X)\not=1]\right)(2\eta(X)-1) \\
+      & = \begin{cases}
+          1[f(X)\not =f^*(X)] (2\eta(X)-1) & \text{if $2\eta(X)-1\ge 0$,}\\
+          1[f(X)\not =f^*(X)] (-1) (2\eta(X)-1) & \text{if $2\eta(X)-1< 0$.}
+	  \end{cases} \\
+      & = 1[f(X)\not=f^*(X)] |2\eta(X)-1|,
+    \end{align*}
+  where the second inequality used the definition of $f^*$.
+\end{pf}
+
+This suggests one family of approaches to the pattern classification
+problem, known as {\em plug-in} methods. The idea is to use the data
+to come up with an estimate $\hat\eta$ of $\eta$, and then use
+  \[
+    f_{\hat\eta}(x) = \begin{cases}
+    1 & \text{if $\hat\eta(x)\ge 1/2$,} \\
+    -1& \text{otherwise.} \end{cases}
+  \]
+In estimating $\eta$, what criterion should we aim to minimize? We can
+use the earlier result to show that if the
+$L_1(\mu)$ distance between $\hat\eta$ and $\eta$ is small, that
+suffices to ensure that the risk of $f_{\hat\eta}$ is close to the
+Bayes risk.
+
+\begin{thm}
+  For any $\hat\eta:\X\to\R$,
+    \[
+      R(f_{\hat\eta}) - R^* \le 2\E\left|\eta(X)-\hat\eta(X)\right|.
+    \]
+\end{thm}
+
+\begin{pf}
+  The previous theorem shows that the excess risk of $f_{\hat\eta}$
+  can be written as
+    \begin{equation}\label{eqn:Rdiff}
+      R(f_{\hat\eta})-R^*
+        = 2\E 1[f_{\hat\eta}(X)\not=f^*(X)]|\eta(X)-1/2|.
+    \end{equation}
+  Now, if $f_{\hat\eta}(X)\not=f^*(X)$, then $\hat\eta(X)$ and
+  $\eta(X)$ must lie on opposite sides of $1/2$, and so we can write
+    \[
+      |\eta(X)-\hat\eta(X)| = |\eta(X)-1/2| + |\hat\eta(X)-1/2|
+      \ge|\eta(X)-1/2|.
+    \]
+  Thus, when the indicator inside the random variable in
+  \eqref{eqn:Rdiff} is 1, we have
+    \[
+      1[f_{\hat\eta}(X)\not=f^*(X)]2 |\eta(X)-1/2|
+      \le 2|\eta(X)-\hat\eta(X)|
+    \]
+  And this inequality is also true when the indicator is zero, since
+  the right hand side is non-negative. Plugging this inequality into
+  \eqref{eqn:Rdiff} gives the result.
+\end{pf}
+
+Another family of approaches to pattern classification problems is to
+fix a class $F$ of functions that map from $\X$ to $\Y$ and choose
+$f_n$ from $F$. Next lecture, as an introduction to kernel methods,
+we'll consider the class of linear threshold functions on $\X=\R^d$,
+  \[
+    F = \left\{ x\mapsto \sign(\theta'x) : \theta\in\R^d \right\}.
+  \]
+The decision boundaries are hyperplanes through the origin
+($d-1$-dimensional subspaces), and the decision
+regions are half-spaces.
+
+\end{document}
