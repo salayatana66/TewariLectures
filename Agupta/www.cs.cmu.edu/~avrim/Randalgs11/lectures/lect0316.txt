@@ -1,0 +1,245 @@
+ 03/16/11	  15-859(M) Randomized Algorithms
+
+* Randomized oblivous routing		 	Chapter 4.2, 4.4
+  on hypercubes and butterflies		   (also material taken from Satish 
+					   Rao's notes at Berkeley)
+* Martingales: defs, Azuma's inequality
+* McDiarmid's inequality
+=====================
+
+In honor of Les Valiant winning the Turing award, I wanted to start
+with a now-classic algorithm of his for oblivious routing on a
+parallel computer "A scheme for fast parallel communication", and
+Valiant and Brebner "Universal schemes for parallel communication"
+(The later one was in STOC 1981, the earlier one in SIAM J Computing
+1982.  Even then, journals were slow...).
+
+We will be considering routing on a hypercube network.  The setting is
+we have N = 2^n processors, where each is a vertex of an n-dimensional
+hypercube.  The links in the network are the edges in the hypercube.
+E.g.,
+                  011------111
+                 / |      / |
+              010------110  |
+               |   |    |   |
+               |  001---|--101
+               | /      | /
+              000------100
+
+Suppose that every vertex i has a packet it wants to send to some
+destination d(i).  Our model is going to be that at most one packet
+can go on any given edge in any given time step, so if multiple
+packets want to go on the same edge, the rest wait at that node.
+We'll get into trouble for sure if many packets want to go to the same
+place so let's assume that the d(i)'s are all distinct (we are routing
+a permutation).  The question is: can we do this without much delay
+(getting everyone to their destination in O(n) steps) using an
+OBLIVIOUS routing scheme?  This means that the route taken by packet
+(i,d(i)) depends on only its start and end location, and not what any
+of the other packets are doing.
+
+To first get a feel for this, suppose we route packets by just
+correcting bits from left to right.  What happens if all packets of
+the form i = (a,\vec{0}) where a \in {0,1}^{n/2} want to go to
+destination d(i) = (\vec{0},b) for b \in {0,1}^n/2?  Any problems?  We
+get 2^{n/2} paths going through a single node (\vec{0},\vec{0}).
+Since this node can send out at most n packets per time step, this
+means some packet will take time at least 2^{n/2}/n.
+
+Before getting to Valiant's result, first a detour into the Butterfly and
+Benes (pronounced "Benish") networks.
+
+A butterfly network is a network that corresponds to the process of
+routing left to right, though it's more "lock-step" than the
+hypercube.  Here is a butterfly on 2 bits.
+
+  START      END
+   00---00---00
+     \ /   X
+   01---01---01
+     X X
+   10---10---10
+     / \   X
+   11---11---11
+
+This has the same problem we just saw.  But what if we add a reversed
+copy of the butterfly onto the end?  This is called a Benes network.
+
+  START                END
+   00---00---00---00---00
+     \ /   X    X   \ /
+   01---01---01---01---01
+     X X            X X
+   10---10---10---10---10
+     / \   X    X   / \
+   11---11---11---11---11
+
+This network is actually an abstraction of telephone switching networks
+developed in the 1950s.  A cool fact about Benes networks is that now,
+for any permutation, there is always a way to route it that has no
+congestion at all.  The key thing is to think about the first and last
+levels.  E.g., say 00 wants to go to 11.  It can either go through the
+"upper inside Benes network" or the "lower inside Benes network".
+Same with if, say, 10 wants to go to 00.  But if the first goes up,
+then the 2nd has to go down and vice-versa.  And for whatever index i
+wants to go to 01, it must also make the opposite choice as 00-11.  If
+we draw a graph with nodes for all these pairs (i,d(i)), we will see
+we have degree 2.  Also, no odd cycles [can anyone see why?].  This
+means we can give a consistent set of up/down decisions so we don't
+have any collisions at the first and last levels.  Then internally, we
+just have smaller Benes networks so we are fine by induction.
+
+Now, back to Valiant's result.  Note that the above construction was
+not oblivious.  Valiant's idea was: how about for each (i,d(i)), we
+pick a *random* intermediate destination Delta(i) and route there
+first using left-to-right routing and then from Delta(i) to d(i).
+Equivalently, in the Benes network, pick a random Delta(i) in the
+middle column. Note: picking iid: the Delta(i) may not be a permutation.
+
+To analyze this [let's just worry about the routing from i to
+Delta(i), and furthermore will go back to thinking about routing on
+the hypercube] let P denote the path taken by packet i, and say it uses
+edges e_1, e_2, ..., e_k.  Let S denote the set of packets whose
+routes also use at least one of the edges in P.  
+
+Claim 1: the delay of packet i is at most |S|.
+
+Proof.  First, what do the intersections look like: can some other
+packet intersect on e_1 and e_2, then go off, and then come back on
+e_5?  No.  Why?  OK, now let's imagine that every time packet i gets
+delayed (it's like a train waiting at a station), it gives a coin to
+the packet that is traveling on its desired edge.  Now, let's say the
+coins furthermore have the following behavior: if their packet gets
+delayed, waiting on some edge e in P, the coin jumps to the packet
+traveling on e.  So, the coins always move forward.  This continues
+until their packet either leaves P or is waiting on some edge outside
+P (that counts as leaving P -- they don't jump to a packet that wasn't
+part of S).  The claim is that no packet ever has more than one coin
+on it at any point in time (it might get a coin, give it up, and get
+one again).  That's because coins always move forward and each new
+coin is at least one step behind the previous one.  So, each packet in
+S leaves path P with at most one coin, and so we can charge the delays
+to |S|.   [[Note: this is a different proof from the one in the book]]
+
+Claim 2: Whp, |S| = O(n).  In particular, Pr[|S| > 3n] < 2^{-3n} = 1/N^3.
+
+Proof.  Define H_j = 1 if P and P_j (the path of packet j) share one
+or more edges, else H_j = 0.  So, |S| = sum_j H_j.  Fixing P, these H_j
+are independent {0,1} random variables, so first we will bound the
+expectation of sum_j H_j and then we will use Chernoff.  
+
+For edge e on path P, define T(e) to be the number of paths (besides
+P) that use edge e.  These quantities are *not* independent, but
+nonetheless, sum_j H_j \leq sum_{e in P} T(e).  Also, what is E[T(e)]?
+For example, "e" might be the edge 
+                      (1 1 0 1 1 0 1)
+                      (1 1 0 1 0 0 1)
+What source-dest pairs use this edge?  How many different sources is
+this? (say this is bit B).  What is the probability their dest is of
+the correct type?  Overall, we get E[T(e)] = 2^{B-1} * 1/2^B = 1/2. 
+
+So, overall, E[sum_j H_j] <= n/2.   Now, by Chernoff, 
+  Pr[sum_j H_j > 3n] <= (e^5/6^6)^{n/2} <= (1/2)^{3n}.
+
+
+So, we can just wait until n+3n=4n steps have elapsed (by then, whp
+everyone has made it to their intermediate destinations) and then just
+run the routes from the intermediate points to the final destination
+using the same analysis.  In the end, whp this takes time at most 8n.
+
+
+========================================================
+
+A quick introduction to Martingales
+-----------------------------------
+
+Consider a gambler who goes into a fair casino, and bets on various
+things using some crazy strategy.  Let X_i denote the amount of money
+he has at time i, and by "fair casino" we mean that no matter what he
+bets on at time i, his expected winnings are 0.  So, by definition of
+"fair casino", E[X_i|X_0,...,X_{i-1}] = X_{i-1}.  A sequence of random
+variables having this property is called a Martingale.
+
+Def: We say that RVs X_0, X_1, X_2, ... are a Martingale Sequence if
+E[X_i|X_0,...,X_{i-1}] = X_{i-1}.
+
+Some other terms you might encounter:
+- if E[X_i|X_0,...,X_{i-1}] \leq X_{i-1} then it's a Supermartingale
+- if E[X_i|X_0,...,X_{i-1}] \geq X_{i-1} then it's a Submartingale
+(go figure!)
+
+The fair casino is one prototypical example of a Martingale.  We'll
+get to another important one (called an "exposure Martingale" or "Doob
+Martingale) in a minute.
+
+BTW, one basic fact: For RVs X and Y, E[E[X|Y]] = E[X].
+
+What's going on here: [Draw picture of a sample space partitioned by
+Y.] E[X|Y] is really a RV that with probability Pr(Y=y) takes on the
+value E[X|Y=y].  Adding this up gives us E[X].  Easiest to think of in
+reverse: e.g., X = running time of Quicksort, Y = 1st pivot choice.
+E[running time] = sum_i Pr(Y=a_i)*E[running time | 1st pivot is a_i]
+
+So, for a Martingale, E[X_i] = E[X_{i-1}] = ... = E[X_0] as we know.
+
+Azuma's inequality (aka Hoeffding-Azuma):
+==================
+
+Let X_0, X_1, ...be a Martingale sequence such that for each i, 
+|X_i - X_{i-1}| < c_i.  Then
+
+  Pr[|X_n - X_0| \geq lambda] <= 2e^{-lambda^2 / (2 \sum_i (c_i)^2)}
+
+E.g., if we have a gambler who can win or lose at most 1 per round in
+a fair game (maybe betting $1 on a fair coin or maybe doing something
+crazy) we get c_i=1.  So if we set lambda = delta*n, we get
+2e^{-delta^2 n/2}, just like our basic Hoeffding bound with iid
+{-1,+1} random variables.
+
+Here is a quite useful thing one can prove using Azuma (up to a
+constant factor in the exponent):
+
+McDiarmid's inequality
+======================
+Say z_1, ..., z_n are independent RVs, and phi(z_1,...,z_n) is some
+real-valued function.  Assume that phi satisfies the Lipschitz
+condition that if z_i is changed, phi can change by at most c_i.  Then
+McDiarmid's inequality states that:
+
+      Pr[|phi(z) - E[phi(z)]| > lambda] <= 2e^{-2*lambda^2 / sum_i c_i^2}
+
+For example, if phi is a sum and the z_i are {0,1} then c_i=1.  If
+lambda = delta*n we get 2e^{-2*delta^2 n} just like our basic Hoeffding
+bound.  Or, phi could be the error rate of some complicated learning
+algorithm that doesn't get too influenced by any one example.  Or the
+running time of some program whose running time doesn't change much if
+you just change one of the random bits.
+
+To prove McDiarmid from Azuma (up to a constant factor in the exponent)
+we define the Doob Martingale / Exposure Martingale.
+
+Think of drawing the RVs z_1, z_2, ... in sequence and consider the
+probability tree of their values.  In fact, think of phi as the
+running time of some randomized algorithm where z_1, z_2, ... are its
+random coins. 
+
+Define X_0 = E[phi(z_1,...,z_n)]  (an RV with just one value).
+       X_1 = E[phi(z_1,...,z_n) | z_1]
+       X_i = E[phi(z_1,...,z_n) | z_1,...,z_i]  (so is a function of
+	   the current node in the tree z_1,...,z_i, and the
+	   expectation is over z_{i+1},...,z_n) 
+       X_n = phi(z_1,...,z_n).
+
+Claim: this is a Martingale.  The easiest way to think of this is (as
+mentioned above) to think of X_i as the "expectation to go" after
+we've already chosen z_1,...,z_i.  If you fix z_1,...,z_{i-1} (but not
+z_i), the expected value of this over the different possible choices
+for z_i is just the "expectation to go" given the fixed
+z_1,...,z_{i-1}, namely X_{i-1}.  This means E[X_i|z_1,...,z_{i-1}] =
+X_{i-1}.  Since that's true for any z_1,...,z_{i-1} that yield the
+same value of X_{i-1}, we get E[X_i|X_{i-1}] = X_{i-1}.  So, we can
+just apply Azuma.
+
+(Actually, if the z_i are fair coins, then X_i can differ by at most
+c_i/2 from X_{i-1}, so we don't lose anything in the exponent)
+

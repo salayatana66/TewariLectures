@@ -1,0 +1,264 @@
+ 02/14/11	  15-859(M) Randomized Algorithms
+
+* Game-theoretic view of randomized algorithms
+* Randomized algorithms for on-line problems         [Chapter 13 in MR]
+  - rent-or-buy
+  - paging
+=============================================================================
+
+For the next few lectures, we are going to be looking at randomized
+algorithms for some problems of a different flavor from the kinds we
+have been looking at so far.  In particular, will be looking at online
+algorithms, machine learning, and game theory.
+
+Before starting on the main topic of today, first a few words about a
+game-theoretic view of why randomization can be a useful tool.  Going
+back to a topic from a few lectures back, let's think about sorting as
+a 2-player game.  In particular, think about sorting an array of size
+3.  If we're going to use quicksort, we have a choice of 3 options to
+make up-front: which position (left, middle, right) to use as our
+pivot.  We can write these as 3 rows of a matrix game.  We can also
+think of the different possible orderings of elements as columns.  Now
+it turns out the only thing we really care about here is where the
+middle element is (because if we pick it as the pivot, then we just
+make 2 comparisons and we're done; but if we don't, then both elements
+go off on the same side, so we make 3 comparisons).  So, let's make 3
+columns based on whether the middle element is in the left, middle, or
+right.  OK, now let's fill in the matrix with the total number of
+comparisons performed.
+
+            L M R
+         L: 2 3 3
+	 M: 3 2 3
+	 R: 3 3 2
+
+So, for any row there exists a column that causes it to pay 3, but the
+uniform distribution over rows has the property that for any column
+its expected payment is only 2+2/3.  It's a small gap for n=3 but for
+larger n, this gets much more pronounced.  Every row has some column
+in which it pays Omega(n^2) but the uniform distribution over rows has
+the property that for every column its expected cost is O(n log n). 
+In fact, we can think of this as a zero-sum game between an
+algorithm-player and an adversary (where the algorithm-player pays the
+adversary an amount equal to the running time).   So, it's not
+surprising that randomization can be a useful tool -- being
+deterministic is like playing rock-paper-scissors when you have to go
+first!  On the other hand, it is *believed* that BPP=P.  That is, it
+is believed the structure of the space of algorithms is such that if
+you have a good randomized algorithm for some problem, there will also
+somewhere down the line be a deterministic algorithm that can mimic
+its performance.  However, still for some problems, like polynomial
+identity testing we discussed last time, we don't have one.
+
+Today's topic of online algorithms will be one where randomization can
+provably help.
+
+===========================
+
+Online algorithms: Algorithms for settings where inputs/data arriving
+over time.  Need to make decisions on the fly, without knowing what
+will happen in the future.  (As opposed to standard problems like
+sorting where you have all inputs at the start.)  Will look at two
+problems: a simple one called ski-rental problem, and a more complicated
+problem of paging.
+
+Rent-or-buy?
+-----------
+
+Simple online problem that captures a common issue in online
+decision-making called the ski-rental problem, but I'm going to call
+it the "elevator or stairs problem".  Say you go to the elevator and
+press the button.  It's completely unclear how long it's going to take
+for the elevator to arrive -- if at all (maybe it's broken).  How long
+should you wait until you give up and take the stairs?  Say taking the
+stairs takes time S, and taking the elevator takes time L<S.  If you
+knew in advance it would come in time < S-L then its better to wait,
+and if you knew it would come in time > S-L then its better to take
+the stairs right away.  But what if you don't know?
+
+To talk about quality of an online algorithm, we can look at what's
+called its "competitive ratio":
+
+        Competitive ratio is worst case (maximum) over possible event
+	sequences sigma of the ratio: Alg(sigma)/OPT(sigma), where Alg
+	= cost of algorithm and OPT = optimal cost in hindsight.  
+
+E.g., what is CR of algorithm that says "take stairs right away"?
+        Worst case is: elevator right there, ratio is S/L.
+
+What about algorithm that says "wait forever"?
+        Worst case is: the elevator is broken... ratio is infinite.
+
+Here's a nice strategy: wait until you realize you should have taken
+the stairs, then take the stairs (i.e., wait for S-L then take stairs).
+
+ Case 1: Elevator comes before time S-L: then you're optimal.
+ Case 2: Elevator comes after: you paid 2S-L, OPT paid S. Ratio = 2 - L/S.
+
+Worst of these is case 2, so competitive ratio is 2 - L/S.
+
+Claim: above strategy has the best possible competitive ratio for
+deterministic algorithms. 
+
+Proof: Consider the case that the elevator arrives right after you
+give up.  If you wait longer than the above strategy, then the
+numerator goes up but the denominator stays the same, so your ratio is
+worse.  If you wait less, then the numerator goes down but
+the denominator goes down by the same amount, so again the ratio is worse.
+
+[Explain ski-rental story.  Or when to put laptop into low-power state, 
+shut off a processor, etc]
+
+How about a randomized algorithm?
+
+In talking about randomization, we need to be clear about our model of
+the world.  In particular, one model (oblivious adversary) is that
+future events are unknown to us but *do not depend* on our choices.
+E.g., the *act of taking the stairs* does not cause the elevator to
+arrive.  This is the most common model.  Another model (adaptive
+adversary) is that we are playing a game against an opponent who knows
+our state.  Now, randomization can be much less useful (and even the
+notion of competitive analysis becomes a bit questionable -- but let's
+not go there).  In any case, we will be focusing on the oblivious
+adversary model.
+
+Now, comp ratio = max_sigma E[cost(sigma)]/OPT(sigma).
+
+In the previous bound, as S/L gets large, the ratio approaches 2.
+Claim is that with randomization, can get e/(e-1) = 1.58...
+
+First, we can assume wlog that if the elevator doesn't come by time
+S-L then it never comes.  Why?  Because OPT(S-L)=OPT(infty).  So we
+should be picking a time to give up from some probability distribution
+over [0,S-L].  And given this, we can assume now the elevator arrives
+at some time in [0,S-L+]. ("+" meaning plus an infinitesimal amount).
+We can either now do this through integrals or through a small finite
+example.  If you do via integrals, you will find the optimal strategy
+is to use density p(t)= Ke^{t/(S-L)}, where K = 1/((S-L)(e-1)) which
+makes it integrate to 1.  You can then verify that if the elevator
+arrives at time t, the algorithm's expected cost is te/(e-1) + L,
+compared to an OPT cost of t+L, giving a ratio of e/(e-1) or better.
+
+But let's instead look at a small example.  Say L=1, S=4.
+Let's also commit to a distribution over one of four strategies: leave
+at time 0, time 1, time 2, or time 3.  In that case, we can assume
+wlog that the adversary makes the elevator come at time 0+,1+,2+, or 3+.
+[[Note: in ski-rental language, this corresponds to how many times we
+rent before we buy]]
+
+We can now make a matrix of ratios, where we are the row player:
+
+       |  0+ |  1+ |  2+ |  3+ |
+   ----+-----+-----+-----+-----|
+     0 | 4/1 | 4/2 | 4/3 | 4/4 |
+   ----+-----+-----+-----+-----|
+     1 | 1/1 | 5/2 | 5/3 | 5/4 |   
+   ----+-----+-----+-----+-----|
+     2 | 1/1 | 2/2 | 6/3 | 6/4 |
+   ----+-----+-----+-----+-----|
+     3 | 1/1 | 2/2 | 3/3 | 7/4 |
+   ----+-----+-----+-----+-----+
+
+Let's set p_0,p_1,p_2,p_3 so that our competitive ratio is c no matter
+when the elevator arrives.  Multiplying the ith column by i and 
+subtracting the (i-1)st column multiplied by i-1, we get:
+
+       4p_0 + p_1 + p_2 + p_3 = c  =>  4p_0 = 3p_1
+             4p_1 + p_2 + p_3 = c  =>  4p_1 = 3p_2
+                   4p_2 + p_3 = c  =>  4p_2 = 3p_3
+			 4p_3 = c  
+
+So, p_3 = c/4, p_2 = (3/4)c/4, p_1 = (3/4)^2 c/4, p_0 = (3/4)^3 c/4
+These sum to 1 so can solve for c:
+(c/4)(1 + 3/4 + (3/4)^2 + (3/4)^3) = 1.
+c = 1/(1 - (1 - 1/4)^4) <= 1/(1 - 1/e) = e/(e-1).
+
+
+PAGING
+------
+In the paging problem, we have a disk with n pages and fast memory
+with space for k pages, k<n.  We are faced with a series of page
+requests.  Given a page request, we incur a fault if the page is not
+in our fast memory and we then have to pay 1 unit to bring the page
+into our fast memory and throw out one of the current occupants if the
+fast memory is full.  Total cost = total number of page faults.
+
+Claim 1: any deterministic algorithm must have competitive ratio at
+least k.  Can anyone see why?  Think of n=k+1.   What's a bad
+sequence?  What would the optimal *offline* be on that sequence?
+
+But, there is a nice randomized algorithm with competitive ratio 2H_k
+= O(log k), called the "Marking algorithm".
+
+Marking Algorithm:
+ - start with all pages in the cache unmarked.
+ - When a page is requested, mark the page.  If it is a page fault,
+   bring it in and throw out a *random* unmarked page.  
+   If this is impossible (all pages in the cache are marked) then
+   unmark all pages in the cache, call this the "end of a phase", and now
+   throw out a random (unmarked) page.
+
+This is like a randomized 1-bit version of LRU, where the mark says
+"is it recently used" or not.
+
+Before proving it, let's see why Omega(log k) is a lower bound for any
+randomized algorithm, even for n=k+1.
+
+Proof (lower bound):  Consider adversary that just requests uniformly
+at random out of set of size k+1.  For *any* online algorithm its
+expected cost per round is 1/(k+1).  What about offline?  What should
+it throw out of its cache?  Let's say that a "round" ends when the
+final page has been requested, causing the offline to pay 1.  What is
+the expected length of a round?  Ans: coupon-collector: Theta(k log
+k).  So (small sleight-of-hand here) the expected cost of the online
+algorithm per unit cost of the offline is Omega(log k).
+[looking at sum of a random number of random variables: Wald's
+equation or optional stopping or "you can't beat a fair casino"]
+
+Proof (upper bound for Marking):
+
+First do case that n=k+1.  Remember a phase ends when all pages in
+cache are marked and a new page is requested, so the optimal offline
+pays at least 1 per phase.  At any point in time, all unmarked pages
+are equally likely to be the page not in the cache [why?]. In fact,
+one way to look at the current state from perspective of adversary is
+as prob. vector over pages not in cache.  Initially (say request that
+begins phase is to page 1) we have (0,1/k,...,1/k).  Then after a new
+page gets marked (say page 2) we have (0,0,1/(k-1),...,1/(k-1)).
+Expected total cost in phase is 1/k + 1/(k-1) + ... + 1 = O(log k).
+
+Now the general case: 
+
+- define a potention function Phi = # pages in OPT cache but not in
+  our cache.   Fix some phase.  Say have Phi_init at the start and
+  Phi_final at the end.
+
+- Say a requested page is "stale" if was marked in the last phase,
+  else call it "clean". Let L be the number of clean pages requested
+  in the current phase.  (Why the distinction: clean pages weren't in
+  our cache at the start of the phase, so those misses are "not our
+  fault" at least wrt actions in this phase.  Stale pages *were* in our
+  cache but we threw them out in the current phase.)  Note L \geq 1.
+
+- Claim 1: OPT pays at least L - Phi_init in the current phase.
+  Proof: The L clean pages weren't in our cache at the start of the
+  phase, so at least L - Phi_init weren't in OPT's cache either.
+
+- Claim 2: OPT pays at least Phi_final in the current phase. 
+  Proof: our cache = set of items requested in current phase.  Only
+  way to have m items *not* requested is to have cost of at least m.
+  (Must have had at least t evictions)
+
+- So, OPT pays at least max of the above, which means OPT pays at
+  least the average, which is (L + Phi_final - Phi_init)/2.
+
+- Summing over phases (let's call it L_t for phase t) we get OPT is at
+  least (L_1 + L_2 + ...)/2, since at start Phi=0.
+
+- Let's now consider the online algorithm.  The Marking algorithm for
+  sure has a miss on each clean page so pays L for that.  For the stale
+  pages, it may or may not have a miss depending on whether it got
+  thrown out.  For the first request to a stale page, the prob it is out
+  is at most L/k.  For the second, it's at most L/(k-1).  Etc.  Overall,
+  we get a cost of O(L*log k).
+

@@ -1,0 +1,237 @@
+ 01/19/11	15-859(M) Randomized Algorithms
+
+* Randomized complexity classes
+* the Minimum cut problem  (Chapter 1.1, 10.2)
+  A simple, fast monte-carlo algorithm
+-------------------------------------------------------------------------
+
+RANDOMIZED COMPLEXITY CLASSES
+
+Let A denote a poly time algorithm that takes two inputs: a (regular)
+input x and an ``auxiliary'' input y where y has length t(|x|) where t
+is a polynomial and is poly-time computable. Think of y as the random
+bits.
+
+A is going to be solving a decision problem: is x in L?  E.g., L =
+the set of composite numbers, L = the set of graphs having a perfect
+matching. 
+
+
+RP: One-sided error. Language L (decision problem) is in RP if there
+	exists a poly time A: 
+
+	For all x in L, Pr_y[A(x,y) = 1] >= 1/2.
+
+	For all x not in L, Pr_y[A(x,y) = 1] = 0.
+
+  (x in L means x is something the algorithm is supposed to output 1 on.)
+
+  For instance, the Miller-Rabin primality tester has the property
+  that if x is composite, then it finds a witness with probability at
+  least 1/2, so we can view it as: if composite, outputs 1 with prob
+  >= 1/2, and if prime, outputs 1 with prob 0.  So, this is RP for
+  compositeness.
+
+
+BPP:  Like RP, but:
+
+	For all x in L, Pr_y[A(x,y) = 1] > 3/4.
+
+	For all x not in L, Pr_y[A(x,y) = 1] < 1/4.
+
+  It is believed that BPP is equal to P.   I.e., Randomness is useful
+  for making things simpler and faster (or for protocol problems) but
+  not for polynomial versus non-polynomial. 
+
+
+P/poly: L is in P/Poly if there exists a poly time A such that for
+  every n = |x|, there exists a fixed y such that A(x,y) is always
+  correct.  I.e., y is an ``advice'' string.  (Remember, |y| has to be
+  polynomial in n, etc.)  Also, can view as class of polynomial-size
+  circuits. 
+
+Theorem: RP is contained in P/poly: Say A is an RP algorithm for
+L that uses t random bits.  Consider an algorithm A' that uses
+an auxiliary input y of length t(n+1) to run n+1 copies of A,
+and then outputs 1 if any of them produced a 1 and outputs 0
+otherwise. Then, the probability (over y) that A' fails on a given
+input x of length n is at most 1/2^{n+1}.  Therefore, with
+probability at least 1/2, a single random string y will cause
+A' to succeed on ALL inputs of length n.  Therefore, such a y must
+exist. QED
+
+
+ANOTHER KIND OF DISTINCTION: Algs like quicksort where always give
+right answer, but running time varies are called LAS-VEGAS algs.
+Another type are MONTE-CARLO algs where always terminate in given time
+bound, but say have only 3/4 prob. of producing the desired solution
+(like RP or BPP or primality testing).
+
+We are going to now look at a monte-carlo algorithm for the Minimum
+Cut problem.
+
+
+THE MINIMUM CUT PROBLEM
+----------------------
+
+Given a graph G, a CUT is a set of edges whose removal splits the
+graph into at least two connected components.  The MINIMUM CUT is the
+cut of minimum size.  For instance, say this graph represents a
+network, and we want to know how ``robust'' it is in the sense of the
+the minimum number of links whose failure causes the network to become
+disconnected.   The minimum cut problem is to find a cut of minimum size.
+
+Easy fact: the minimum cut has size at most the minimum degree of any node.
+
+You're probably more familiar with the ``s-t minimum cut'' problem,
+where you want a cut that separates to specific vertices s and t,
+since this is the dual to the max flow problem.  In fact, for a while,
+the best algorithm for finding the global minimum cut was to solve the
+s-t cut problem n times.
+
+Here's a really simple randomized algorithm:  [due to D. Karger]
+
+
+THE SIMPLE ALGORITHM  (view #1)
+
+  1. Pick an edge (x,y) at random in G.
+
+  2. CONTRACT the edge, keeping multi-edges, but removing self-loops.
+
+	(i.e., if there were edges (x,v) and (y,v), we keep both of them.)
+
+  3. If there are more than 2 nodes, go back to 1.  Else, output the
+	edges remaining as your cut.
+
+
+Do example on graph:     *-------*
+                        /|       |\
+                       / |       | \
+                      *  |       |  *
+                       \ |       | /
+                        \|       |/
+                         *-------*
+
+Easy algorithm, want to show it has a reasonable (1/n^2) chance of working.
+(So, run n^2 * log n times to get success with prob 1-1/n  --- this is
+Monte-Carlo. Do the calculation:  Pr(failure) = (1-1/n^2)^{n^2*log(n)}
+= e^{-log(n)} = 1/n)
+
+EQUIVALENT FORMULATION: 
+
+   1. Randomly rank the edges.  (flip coins in advance)
+      Think of these as ``weights'' on the edges.
+
+   2. Use Kruskal to find minimum spanning tree (i.e., start with
+	lightest edge, then put in next lightest that connects two different
+	components, etc.)
+
+
+   3. remove the last edge.  This gives you the two components.
+
+(we'll talk in terms of the first view of the algorithm)
+
+ANALYSIS
+--------
+1) Say we fix some cut C.  So long as none of edges in C have been
+selected, C remains a cut.  Reason: only contract edges, so things on
+left side of C stay on left side, and things on right side stay on
+right side.
+
+2) in the course of the algorithm, does the min cut size go down or
+up?  Claim: any cut in the new graph is also a cut in the original
+graph.  Why?  (Just think of undoing the last operation: all this does
+is split a node.)  So, min cut size can't go down.
+
+3) Say original graph has min cut of size k.  Claim: when have n-i
+nodes remaining (for some i>= 0), there are at least (n-i)k/2 edges in
+the graph.  Why?  (Proof: each node must have degree at least k in the
+new graph)
+
+   The point of (3) is that we want to have lots of edges to reduce
+   the chance that we kill our favorite cut.
+
+So,..... Say k is the size of the min cut, and fix some min cut C.
+What is the prob that C survives the first round?   
+
+	1 - k/(# edges) >=  1 - k/(nk/2)  =  1 - 2/n.
+
+Suppose it's survived so far, and there are now n-i vertices.  Prob of
+survival is at least:
+				1 - 2/(n-i).
+
+So, prob that C survives overall is at least:
+
+	Prod_{i=0}^{n-3} (1 - 2/(n-i))
+
+	= (n-2)/n * (n-3)/(n-1) * (n-4)/(n-2) * ... * 1/3
+
+        = 2/(n(n-1))
+
+Neat implication: How many minimum cuts are there? A: at most n(n-1)/2.
+
+Running time: can implement in O(m log m) time, (or O(n^2) time),
+results in O(mn^2 log^2 n) overall if we run it O(n^2 log(n)) times.
+Simple, but not all THAT fast.  How can we speed all this up?
+
+
+SPEEDING UP THE ALGORITHM   [Due to D. Karger and C. Stein]
+-------------------------
+
+Claim: earlier steps are less risky than later steps.  Why?
+
+At what point is our chance of having lost C about 50/50?  
+
+Ans: when we have about n/sqrt(2) vertices left.  By that time, our
+success probability is about: 
+
+		(n/sqrt(2))^2 / n^2 = 1/2.
+
+So, this suggests a speedup:
+
+	Instead of repeating from the start, let's repeat from only
+	partway down.  E.g., from when we had just n/sqrt(2) vertices left.
+
+Can think of this as building a binary tree (where root has degree 1)
+of depth 2lg(n), # leaves is n^2, where then each edge is
+independently destroyed with prob 1/2. 
+
+Q: What's the probability some path to a leaf survives?
+
+	(can think of the strategy of doing n^2 repititions as a root
+	with n^2 branches leading, in depth 2lg(n) to n^2 leaves.)
+
+First, what is running time:
+
+	T(n) = O(n^2) + 2T(n/sqrt(2)) = O(n^2 log n)
+
+
+Now: want to show that a path survives with probability at least 1/log(n).
+
+Proof:
+
+ For tree of depth d, let P_d be the probability a path survives.
+Looking recursively, we get:
+
+	P_d = (1/2) (Prob one of two subtrees has a path that survives)
+
+            = (1/2) (2P_{d-1} - (P_{d-1})^2)
+		(using Pr(A or B) = Pr(A) + Pr(B) - Pr(A and B))
+
+            = P_{d-1} - (1/2) (P_{d-1})^2.
+
+We can now verify that P_d > 1/d  (for d>1), since:
+   
+              1/(d-1) - 1/(2(d-1)^2)  >  1/(d-1) - 1/(d(d-1)) = 1/d
+
+
+So, we can just run our algorithm log^2(n) times to get good
+probability of success. 
+
+
+One good way of looking at what we've shown is this:  we have shown
+that we can replace n^2 indepdendent runs of the algorithm by n^2
+DEPENDENT runs of the algorithm in a way that drastically reduces
+running time ((n^2 * cost-of-one-run) versus (log(n) * cost-of-one-run), 
+but only slightly reduces the chance of success (constant versus 1/log(n)).
+

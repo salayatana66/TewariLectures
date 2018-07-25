@@ -1,0 +1,218 @@
+ 04/04/11              15-859(M) Randomized Algorithms
+
+* amplification via expanders
+* expanders and eigenvalues
+========================================================================
+
+Today we are going to talk more about expander graphs, and in particular
+constant-degree expanders.  Recall these have the property that every
+set W of size <= n/2 has |N(W)-W| >= epsilon*|W|, for some constant epsilon>0.
+
+First, is a 2-grid an expander?  No.  Perimeter of W might be
+only sqrt(area).  How about 3-d grid?  No.  Surface area might be only
+(volume)^{2/3}.  For an expander you need surface area proportional to
+volume.  So expanders are intrinsically high-dimensional.
+
+Anupam pointed out nice Gabber-Galil intuition [give intuition]
+
+We're going to show today that expansion implies having an eigenvalue
+gap (and therefore rapid mixing as we showed last time) and vice
+versa.  Also [before or after?] I wanted to finish and argument from last
+time on how expanders can be used to reduce the number of random bits
+needed for amplifying the success probability of a randomized algorithm
+
+Expanders for amplification [Impagliazzo & Zuckerman]
+-----------------------------------------------------
+* Have BPP alg using r random bits, with failure prob 1/100.  Claim: 
+can decrease failure to (1/100)^k by using only r + O(k) random bits.
+(in contrast to r*k bits if ran k times independently)
+
+* Idea: set up implicit expander graph with one node for each string of
+length r, and imagine we color nodes ``good'' or ``bad'' depending on
+whether they cause the BPP algorithm to answer correctly or not (so
+99% of the nodes are good).  Start at random initial position and then
+do a random walk.  Only need constant random bits per step.  Sample
+every \beta steps (ie., run the BPP alg using the current node as its
+random input) where \beta is defined to make 2nd largest eigenvalue of
+R = M^\beta at most 1/10.  Sample 42k times and take majority
+vote.  What we want is for it to be very unlikely that more than half
+of samples are bad nodes.
+
+* We'd like to say that no matter where you start, after running one
+step of R, there's at most 1/5 chance of being at a bad node.  Can't
+quite get this.  But, get something similar by looking at L_2
+length.  In particular, for any vector p, 
+
+	sqrt(sum of squares of bad entries of pR) <= 1/5 *(L_2 length of p).
+
+Proof: say eigenvectors are e_1, e_2, ... where e_1 = (1/n,...,1/n).
+All orthogonal.
+
+  Let p = x + y, where x = e_1, y = c_2e_2 + ... + c_ne_n
+
+  For convenience, define Z as matrix that zeroes out all the good entries.  
+  I.e., Z is identity but where have zeroed out entries for good nodes.
+
+  So, our goal is to show that ||pRZ|| <= 1/5 * ||p||.
+
+  Look at x: ||xRZ|| = ||xZ|| <= 1/10 * ||x||.  [because 10 = sqrt(100)]
+
+  Look at y: ||yRZ|| <= ||yR|| 
+              = ||c_2 lambda_2^beta e_2 + ...+ c_n lambda_n^beta e_n||
+             <= 1/10 * ||y||.   [since each component shrunk by 1/10]
+
+  So,
+	||pRZ|| <= ||xRZ|| + ||yRZ||   (triangle inequality)
+                <= 1/10||x|| + 1/10||y||
+                <= 1/5 * ||p||
+
+(Note: this also shows that ||pRRZ|| <= 1/5 * ||p||, etc.)
+
+Intuitively, if p was "spread out" already, then so is pR, and
+multiplying by Z is zeroing out a lot of weight of entries.  On the
+other hand, if p is highly concentrated, then multiplying by R by
+itself is decreasing the L_2 length by spreading out the distribution.
+
+* Now, to finish the proof: We want to say it's unlikely more than
+half the samples are bad. 
+
+Let's consider a fixed set of t samples, and ask: what's the
+probability that these are all bad?  Claim: if q is our starting
+distribution, then what we want is the L_1 length of
+		q R R R Z R Z R R Z R Z
+where the t "Z"s are indexing the t samples we took (there's at least
+one "R" between any two "Z"s).
+
+We'll use the fact that L_1 length <= sqrt(n) * L_2 length.
+And, L_2 length of (q R R R Z R Z R R Z R Z) <= (1/5)^t * L_2 length of q.
+And, L_2 length of q is 1/sqrt(n) 
+  [since we started at a *random* initial position -- this is where we
+  use that fact] 
+So, the probability these are all bad is at most (1/5)^t.
+
+For half of all 42k samples to be bad we need some set of t > 21k to
+be bad.  At most 2^(42k) such sets.  Prob of failure at most
+	2^(42k) * (1/5)^(21k) = (4/5)^(21k) <= (1/100)^k.   QED
+
+==============================================================================
+
+Now: prove theorems showing that expander graphs have an eigenvalue
+gap, and vice versa that graphs with an eigenvalue gap are expanders.
+
+First: eigenvalue gap ==> expansion. 
+
+THEOREM 1: if G is d-regular and lambda = 2nd-largest eigenvalue of M(G),
+then for all W \subset V, the number of edges between W and V-W satisfies
+		E(W,V-W) >= d*|W|*|V-W|*(1-lambda)/n
+which also implies that if |W| <= n/2, then
+		|N(W) - W| >= |W|*(1-lambda)/2
+
+[the last implication follows from |V-W| >= n/2, and degree = d]
+[Note: here M(G) = A(G)/d = Markov chain of random walk]
+[By the way, this kind of edge expansion is intutitively what causes
+walk to be rapidly mixing.]
+
+Before giving the proof, first some preliminaries.  Since the
+degree=d, the stationary distribution is uniform, so the eigenvector
+of largest eigenvalue is all 1's.  This means that all the other
+eigenvectors have sum of entries equal to 0 (since they are
+orthogonal).  [[Actually, another way to see this, that holds for any
+Markov chain, is if v is eigenvector of eigenvalue lambda and z is all
+1's column vector then vMz = lambda*vz = lambda*(sum of entries in
+v). But, left-hand-side is just vz since rows of M add up to 1.  So,
+either lambda=1 or sum of entries = 0]]
+
+Proof of THM 1: Define vector f such that f_v are equal (and
+positive) over v in W, f_v are equal (and negative) over v in V-W, and
+the sum of entries in f is 0. In particular, let  f_v = |V-W| for v in
+W, f_v = -|W| for v in V-W. 
+
+If we write f in terms of eigenvectors, it has zero component along
+largest since its sum of entries is 0.
+
+Also, for later: sum_v (f_v)^2 = |W|*|V-W|^2 + |V-W|*|W|^2 = n*|W|*|V-W|
+
+IDEA: in one step of random walk, f has to shrink since there's an
+eigenvalue gap, but the only way for f to shrink is to mix between W
+and V-W, which means there have to be a lot of edges.  Formally:
+
+    f = c_2e_2 + ... + c_ne_n
+   Mf = c_2*lambda_2*e_2 + ... + c_n*lambda_n*e_n.
+
+Now, take dot product with f. 
+
+ Mf.f = (c_2)^2*lambda_2 + ... + (c_n)^2*lambda_n <= lambda_2*(f.f)
+  
+RHS is lambda_2*sum_v (f_v)^2
+
+LHS is sum_v [ f_v * [avg_{u in N(v)} f_u] ].   If f_v was constant,
+	this would just be sum_v[(f_v)^2].  But f is not exactly
+	constant, so instead we have
+
+sum_v[(f_v)^2] - (1/d)sum_{edges uv across cut} [f_v^2 + f_u^2 - 2f_u*f_v]
+    = sum_v[(f_v)^2] - (1/d)sum_{edges uv across cut} [n^2]
+    = sum_v[(f_v)^2] - (1/d)E(W,V-W)*n^2.
+	
+and voila: E(W,V-w)>=d(1-lambda_2)*[sum_v (f_v)^2]/n^2 = d|W|*|V-W|(1-lambda)/n
+---------------------------------------------------------------------------
+Intuition for both arguments: think of eigenvector as defining a cut,
+with positives on one side and negatives on other. Eigenvector of 2nd
+largest eigenvalue is roughly the cut with the least edge expansion
+across it.
+---------------------------------------------------------------------------
+Now we will go for the other direction.  For this direction it will be
+easier to work with A(G) rather than M(G).  So largest eigenvalue is d
+and 2nd-largest lambda_2 is \leq d.
+
+Theorem: If for all |W| <= n/2, |N(W) - W| >= c|W| for some c>0, then
+		lambda_2 <= d - c^2/(4 + 2c^2)
+
+
+For this direction, I claim that you can reduce the proof to the
+following probabilistic puzzle.
+
+Consider a probability distribution P on a regular degree-d graph G.
+Say we pick two vertices independently according to P.
+Let A = Prob(the two vertices are neighbors)
+Let B = Prob(the two vertices are the same)
+
+Claim 1: for any P, A/B <= d.
+
+E.g., if P is uniform, then A=d/n and B=1/n so A/B=d.
+	Argue that any other P just decreases the ratio?
+	Follows from (P_u)^2 + (P_v)^2 >= 2*P_u*P_v.
+	Sum over all edges.  LHS gives d*B, RHS gives A.
+  Another way to see is that B = PP^t and A = A(G)PP^T and so A/B <= d
+  follows by the fact that all eigenvalues are <= d. 
+
+Claim 2: suppose we require P_v = 0 on at least half of the vertices
+of G.  Then, if G is an expander, A/B <= d - c' for some constant c'>0.
+
+ This is the tricky part.  First, some intuition: say P was flat on the
+ non-zero part W.  In this case, B = 1/|W|.  A = (avg internal
+ degree)/|W| = (d - (# edges leaving W)/|W|) / |W|.
+ So, A/B = d - (# edges leaving W)/|W| >= d-c since graph is an
+ expander.  In general you have to do a summation, which is on the
+ handout by Alon.  In his handout, x is the probability vector, and if
+ you look at last displayed equation, the left hand side is dB-A [you
+ get d*sum_i x_i^2 - sum_i sum_{j~i} x_ix_i], and the right-hand side
+ is (c^2/2d)*B, so this gives us A/B <= d - c^2/2d. 
+
+Now, let's see why Claim 2 implies what we want: namely, lambda_2 <= d - c'.
+
+Let f = eigenvector for lambda_2.  WLOG, f is positive on at most half
+of entries (else look at -f). Define g so that g_v = f_v if f_v > 0
+and g_v = 0 otherwise.  Let's scale f so that the sum of entries in g
+is 1.  g is going to be the probability dist P. 
+
+We know A(G)f = lambda_2 f.  Let's take dot product of both sides with g.
+
+Get: lambda_2 = [A(G)f.g]/[f.g]
+
+Denominator = B
+
+Numerator = Sum_v( g_v * (sum_{u in N(v)} f_u) ) <= A
+	(replacing negative entries with zero only increases this)
+
+So, all one has to do is prove Claim 2.  -> see handout by Alon.
+=============================================================================

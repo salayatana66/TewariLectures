@@ -1,0 +1,223 @@
+ 03/28/11            15-859(M) Randomized Algorithms
+
+* random walks on graphs		Chap 6.1, 6.3, 6.4, 6.5
+============================================================================
+Turn to new topic: random walks on graphs. 
+Lots of applications:
+	- approximation/estimation problems: estimating permanent, volumes
+	- random selection: pick a random consistent linear separator.
+	- derandomizing randomized algs.
+	- uses in machine learning
+
+Plus, it's neat by itself.  Say you're lost in a maze and don't have
+paper and pencil to make a map.  How long will it take to get out if
+you just move around randomly? 
+
+Random walk on a graph:  Start at some initial vertex.  Pick neighbor
+  at random and go there, etc.  Equivalently, think of as currently on
+  some edge heading in some direction.  Then move to random neighboring
+  edge in forward direction. NOTE: thinking of UNDIRECTED graphs.
+
+
+Interesting quantities to look at:
+
+H_uv = "hitting time" from u to v: E[#steps to first reach v | start at u]
+
+C_uv = "commute time: E[# steps to go from u to v then back to u]
+
+	C_uv = H_uv + H_vu.  Why?  
+
+	(linearity of expectation: X = # steps to first hit v.
+                                   Y = # steps to hit u after first hit v.)
+
+C_u = "cover time from u" is the expected time to visit entire graph
+	when we start at u.
+
+C_G = "cover time of G" = max_u ( C_u )
+
+
+THEOREM 1: If G is connected, n vertices, m edges, then  C_G <= 2m(n-1). 
+
+  Implication: s-t connectivity in "randomized log space". Only have
+     O(log n) bits of read/write memory, and required to halt in poly time,
+     can determine connectivity with 1-sided error.
+
+  Big result in 2005: Omer Reingold proved you can actually do this in
+  deterministic log space.  But we're not going to do that here.
+------------------------------------------------------------------------------
+We will prove THEOREM 1 in two ways.
+
+Method 1: 
+
+ For convenience, let's think of ourselves as at each time step being
+on some edge heading in some direction (as opposed to being at a
+node).
+
+Lemma: average time between successive visits to directed edge u-->v = 2m. 
+
+Note: this implies that if u and v are neighbors, then C_vu <= 2m.  Why?
+(the expected time to go from v to u to v <= expected time if we
+wait until we actually take the u-->v edge, which is what the lemma is
+counting (the fact that we just came from u is irrelevant))
+
+Proof of lemma:
+Suppose we started by picking an edge and direction at random.  So,
+our distribution has prob 1/2m on each directed edge.  What is our
+distribution after one step?
+
+Answer: the same.  Pr( we're now on edge v-->w) = Pr( we were on an
+edge u-->v) * Pr( took v-->w | we were on u-->v) = [d(v)/2m]*[1/d(v)] = 1/2m
+
+So this is a fixed-point.  
+[Aside: in fact, no matter how we start, so long as graph is connected
+and has an odd cycle, we'll approach this distribution.  If no odd
+cycles then alternate b/w odd times t and even times t]
+
+So, over a sequence of t steps, the expected number of times we
+traverse edge u-->v is t/2m.
+
+Now, we want to invert this to say that the expected time between two
+consecutive traversals of u-->v is 2m.  
+
+.........u->v..............u->v.......u->v....................u->v
+"in t steps expected # u->v's is t/2m so average gap must be 2m, right?"
+
+Let's be careful about this:  eg, if graph was two disconnected
+equal-size pieces, then the expected time between consecutive
+traversals of u->v would be m, since with prob 1/2 there would be no
+visits and with prob 1/2 there would be about t/m visits.  And,
+expected time to the first visit would be infinite.
+
+Formally, the property we need to make this inference is that the
+variance of the RV "length of the jth gap" is finite.  If graph is
+connected, can see variance is finite since in each n steps (no matter where
+we start), have at least a 1/2^n chance of crossing this edge (this is
+way undercounting).
+
+The reason we want this is imagine the experiment "keep walking
+until have made s visits to u->v edge".  Since variance is finite,
+this will occur in finite time with probability 1.  Now use Law of
+Large Numbers which says that if repeat an experiment independently s
+times then as s->infinity, the observed average value will with
+probabiltiy 1 approach its expectation.  In our case, this means that
+observed average gap length approaches its expectation.  This means
+that with probability 1, the observed number of traversals (which is
+t/[observed average gap length]) is approaching t/E[gap length].  This
+must be t/2m since it can't be the case that the observed number of
+traversals approaches with probability 1 something that is not its
+expectation, since it is a bounded quantity.
+
+Where are we now: we have that the average time between successive
+traversals of some edge u-->v is 2m.
+
+---------------------------------------------------------------------
+To finish the proof about the cover time of graph:
+
+ Let's consider some spanning tree of the graph.  Has n-1 edges.
+ Consider some fixed tour on the spanning tree.  --> traverses each
+ edge twice.  So,
+
+ E[time to visit entire graph]
+ <= E[time to visit nodes in that order] 
+  = sum, over all directed edges (u,v) in the tree, of H_uv.  
+
+For each {(u,v), (v,u)}, get H_uv + H_vu = C_uv <= 2m.  Since n-1
+edges, we get: 2m(n-1).
+
+===========================================================================
+Proof 2. 
+
+Something different: resistors.
+
+Resistive network is a graph with resistors on the edges.  E.g.,
+
+              *-----2 Ohms------*
+              |                 |
+            1 Ohm              2 Ohms
+              |                 |
+              *-----3 Ohms------*
+
+Say we hook up a battery.  Then each node has a voltage ("potential")
+and each edge has a current.
+
+Kirchoff's law: current is like water flow.  For any node, sum
+	entering equal sum leaving. 
+
+Ohm's law: V=IR.  (V = voltage difference across resistor).
+
+	Voltage is a property of a node.  Sometimes called "potential".	
+
+Two resistors in series add resistance:
+
+          *-------R1--------*-------R2-------*
+         V0                V1                V2
+
+
+	Say I = current flowing from left to right.  Then V1 = V_0 - I*R_1.
+
+	V2 = V0 - I*R1 - I*R2  ==> delta(V) = I(R1 + R2).
+
+                                _____R1______
+                               /             \
+Two resistors in parallel:  V0*               *V1
+                               \_____R2______/
+ 1/R = 1/R1 + 1/R2.
+
+
+ See via: I1 = (V0 - V1)/R1, I2 = (V0-V1)/R2.  and I=I1+I2 = (V0-V1)/R.
+
+
+Neat fact:
+
+THEOREM 2: Take a graph G and think of each edge as a unit resistor. 
+Let R_uv = effective resistance between u and v.  Then an exact expression
+for the commute time is 
+
+	C_uv = 2m R_uv.
+
+ I.e., say we set voltage at v to 0, voltage at u to V_u such that
+ current flowing = 2m.  Then, V_u = C_uv.
+
+This implies that if u and v are neighbors, then C_uv <= 2m, so it
+gives another proof of THEOREM 1.
+
+--
+
+To prove this, we first show the following lemma.
+
+Lemma 1: Say that for each node x != v we put a battery with voltage
+H_xv, and positive terminal at x and negative terminal at v.  Then
+this will cause d(x) units of current (amps) to flow out of each node
+x !=v, with all these 2m - d(v) amps going into v.
+
+Proof: 	Let's define v to have voltage 0 so each x != v has voltage H_xv.
+        For each x != v, by definition of H_xv, we can write it in
+	terms of what happens after one step, like this:
+
+	H_xv = 1 +  AVG    H_wv.   So d(x)*H_xv = d(x) +   SUM    H_wv
+                  w in N(x)                              w in N(x)
+
+	Now, the current flowing on edge xw is equal to (V_x - V_w)/1.
+	So, the total current flowing out of x is equal to:
+
+	  SUM     [V_x - V_w]   =   SUM    [H_xv - H_wv]
+	w in N(x)                 w in N(x)
+
+	Plugging in the above, this equals d(x).
+
+
+Lemma 2: Say for each node x != u we put a battery with voltage H_xu
+with positive terminal at u and negative termnal at x.  Then this will
+cause d(x) amps to flow into each x, with all these 2m - d(u) amps
+coming from node u.
+
+Proof: exact as above / by symmetry.
+
+
+Proof of THEOREM 2.  Consider adding together the voltages from Lemma
+1 and Lemma 2.  So we have voltage drop H_uv + H_vu = C_uv between u
+and v.  Also, if we add the voltages, then currents add too by
+linearity.  So, we get 2m units of current going out of node u and
+into node v.   Since no current flows into any other node, we can view
+this as a single battery between u and v, and can use V=IR to get C_uv
+= 2m * R_uv as desired.

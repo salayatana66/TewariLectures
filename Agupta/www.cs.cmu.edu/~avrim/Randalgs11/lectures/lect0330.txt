@@ -1,0 +1,226 @@
+ 03/30/11            15-859(M) Randomized Algorithms
+
+* Random walks and Rapid mixing				Chap 6.2, 6.7, 6.8
+==============================================================================
+Last time: random walks and cover time.  BTW, we showed that in the
+stationary distribution, the prob on a node is proportional to its degree.
+
+Random walk on graph is special case of random walk on Markov Chain.
+Markov Chains:
+
+ - defn.
+	 P_ij = prob of going to j given that you're in state i.
+
+ - e.g., for a graph, if put 1/2 prob of staying put on each step, then
+   P_ij = 1/2d(i) if j is a neighbor of i, P_ii= 1/2, rest are 0.
+
+ write a prob distribution as a row vector q.  Then, one step of walk = qP
+
+ If underlying graph (include only edges with non-zero prob) is
+ strongly connected, then chain is "irreducible".
+
+ for finite irreducible MC's, "aperiodic" -> for any starting
+ distribution, after finitely many steps, have non-zero prob on every state.
+
+ stationary distribution: eigenvector of eigenvalue 1.
+
+ Note: this is largest eigenvalue.  
+
+ One of things we'll want for some algorithms is to show that a random
+ walk is rapidly mixing -> E.g., approach stationary in only polylog(n) steps.
+ What kinds of graphs / markov-chains give us this property?
+
+=============================================================================
+
+When do we get rapid mixing? [esp focusing on random walks on
+constant-degree graphs]
+
+Ans #1: if have gap between largest and 2nd largest eigenvalue.
+
+Ans #2: if graph is expander: for all sets S of <= n/2 nodes, 
+		|N(S) - S| > epsilon*|S|.
+        I.e., graph doesn't look like a dumbbell.
+
+Next time: nice result of Noga Alon -> equivalence of these two concepts.
+
+Today: keeping with theme of random walks: why eigenvalue gap gives
+you rapid mixing, randomized construction of expanders, and one
+interesting application of deterministic constructions.
+
+
+Eigenvalue gap -> Rapid Mixing
+==============================
+Theorem: Say M is a markov chain with real eigenvalues and orthogonal
+eigenvectors.  Then, for any starting distribution, the L_2 distance
+between q^(t) (the distribution after t steps) and the stationary
+distribution \pi is at most |lambda_2|^t, where lambda_2 is the
+eigenvalue of second-largest absolute value.
+
+So, if we have an eigenvalue gap of some constant epsilon, then
+takes only O((log n)/epsilon) to get down to 1/n^c.  
+
+For instance, symmetric matrices have real eigenvalues and orthogonal
+eigenvectors. E.g., say M = (I/2 + A/(2d)) where A is matrix for a
+d-regular graph. Then M is symmetric, all eigenvalues of M are
+nonnegative [that's because I has all eigenvalues equal to 1], and M
+has eigenvalue gap epsilon/(2d) where epsilon is the eigenvalue gap for A.  
+
+In fact, can generalize to ``time-reversible'' Markov chains:
+p_{ij}\pi_i = p_{ji}\pi_j for all i,j. E.g., random walk on
+a graph where nodes are not necessarily all the same degree.
+
+
+PROOF OF THEOREM: 
+Say orthogonal eigenvectors are e_1, ..., e_n.  e_1 = \pi
+(just for easier intuition we are normalizing e_1 to have unit L_1
+length).  Say we start at 
+
+	q^(0) = c_1e_1 + ... + c_ne_n.
+
+(Actually, c_1=1 since entries in \pi sum to 1 and entries in all
+other eigenvectors sum to zero.)
+After t steps, we're at:  
+
+    q^(t) = c_1e_1 + c_2(lambda_2)^t e_2 +... + c_n (lambda_n)^t e_n).
+
+The L_2 length of the (e_2...e_n) part is at most |lambda_2|^t times
+the length of q^(0) (and ||q^(0)|| \leq 1).  QED
+
+
+Next: building expanders and some of their uses.
+
+RANDOM LOW-DEGREE GRAPHS ARE EXPANDERS
+--------------------------------------
+Claim: Say we create a (n,n) bipartite graph as follows: for each node
+on the left, we pick a random subset of d=3 nodes on the right to be
+neighbors.  Then, there exists a constant c such that w.h.p, for all
+sets S on the left with |S| <= n/c, we have |N(S)| >= 1.9*|S|.
+[Equivalently, can view this as creating an n-node directed graph by
+giving each node 3 random out-edges.]
+
+Proof: For given values of s, r, what is the probability that
+there *exists* a set S of s vertices on the left with <= r neighbors
+on the right?  
+
+Let's upper bound this by fixing a set S of s nodes on the left and
+fixing a set R of r nodes on the right and calculating the prob that
+all nbrs of S lie inside R, and then multiply this by (n choose s)*(n choose r)
+
+	Pr(exists such an S) 
+		<= (n choose s)(n choose r)[(r choose d) / (n choose d)]^s
+
+			[now, using (a/b)^b <= (a choose b) <= (ae/b)^b]
+
+		<= (ne/s)^s (ne/r)^r [(re/d) / (n/d)]^{ds}
+
+		<= e^{s + r + ds} * r^{ds - r} / ( n^{ds - s - r} s^s )
+
+			[now, plugging in d=3, r=1.9s]
+
+		<= e^{6s} r^{1.1s} / ( n^{0.1s} s^s )
+
+                 = (1.9 e^6 r^{0.1} / n^{0.1})^s
+
+We now need to sum this over all values of s.  For s=1 this looks like
+const/n^{0.1}, for s=2 this looks like const/n^{0.2}.  By s=10 it is
+down to const/n.  The quantity keeps dropping until s starts getting
+large.  We're OK so long as the numerator is sufficiently smaller than
+the denominator (say less than half of the denominator).  This will be
+fine for sufficiently large c. 
+
+Applications
+------------
+Lots of applications for things like routing, fault-tolerant networks, etc. 
+
+For today will look at amplifying success probability of randomized
+algorithm without using a lot more random bits.  For this application,
+we'll need the fact that there are deterministic constructions of
+constant-degree expanders with the property that even if 2^n nodes,
+can perform walk in poly time per step.  (Given the name of a node,
+can compute quickly who the neighbors are).
+
+
+Gabber-Galil construction
+-------------------------
+|X| = |Y| = n = m^2.  Each vertex in X labeled by pair (a,b) for a,b
+in Z_m.  Same for vertices in Y.  Degree 5.
+Neighborhood of (x,y) is:
+				(x+y+1,y)
+				(x+y,y)
+				(x,y)
+				(x,x+y)
+				(x,x+y+1)
+
+
+Specifically, here is result of [Impagliazzo & Zuckerman]: 
+------------------------------------------------------------
+* Have BPP alg using r random bits, with failure prob 1/100.  Claim: 
+can decrease failure to (1/100)^k by using only r + O(k) random bits.
+(in contrast to r*k bits if ran k times independently)
+
+* Idea: set up implicit expander graph with one node for each string of
+length r, and imagine we color nodes ``good'' or ``bad'' depending on
+whether they cause the BPP algorithm to answer correctly or not (so
+99% of the nodes are good).  Start at random initial position and then
+do a random walk.  Only need constant random bits per step.  Sample
+every \beta steps (ie., run the BPP alg using the current node as its
+random input) where \beta is defined to make 2nd largest eigenvalue of
+R = M^\beta at most 1/10.  Sample 42k times and take majority
+vote.  What we want is for it to be very unlikely that more than half
+of samples are bad nodes.
+
+* We'd like to say that no matter where you start, after running one
+step of R, there's at most 1/5 chance of being at a bad node.  Can't
+quite get this.  But, get something similar by looking at L_2
+length.  In particular, for any vector p, 
+
+	sqrt(sum of squares of bad entries of pR) <= 1/5 *(L_2 length of p).
+
+Proof: say eigenvectors are e_1, e_2, ... where e_1 = (1/n,...,1/n).
+All orthogonal.
+
+  Let p = x + y, where x = e_1, y = c_2e_2 + ... + c_ne_n
+
+  For convenience, define Z as matrix that zeroes out all the good entries.  
+  I.e., Z is identity but where have zeroed out entries for good nodes.
+
+  So, our goal is to show that ||pRZ|| <= 1/5 * ||p||.
+
+  Look at x: ||xRZ|| = ||xZ|| <= 1/10 * ||x||.  [because 10 = sqrt(100)]
+
+  Look at y: ||yRZ|| <= ||yR|| 
+              = ||c_2 lambda_2^beta e_2 + ...+ c_n lambda_n^beta e_n||
+             <= 1/10 * ||y||.   [since each component shrunk by 1/10]
+
+  So,
+	||pRZ|| <= ||xRZ|| + ||yRZ||   (triangle inequality)
+                <= 1/10||x|| + 1/10||y||
+                <= 1/5 * ||p||
+
+(Note: this also shows that ||pRRZ|| <= 1/5 * ||p||, etc.)
+
+Intuitively, if p was "spread out" already, then so is pR, and
+multiplying by Z is zeroing out a lot of weight of entries.  On the
+other hand, if p is highly concentrated, then multiplying by R by
+itself is decreasing the L_2 length by spreading out the distribution.
+
+* Now, to finish the proof: We want to say it's unlikely more than
+half the samples are bad. 
+
+Let's consider a fixed set of t samples, and ask: what's the
+probability that these are all bad?  Claim: if q is our starting
+distribution, then what we want is the L_1 length of
+		q R R R Z R Z R R Z R Z
+where the t "Z"s are indexing the t samples we took (there's at least
+one "R" between any two "Z"s).
+
+We'll use the fact that L_1 length <= sqrt(n) * L_2 length.
+And, L_2 length of (q R R R Z R Z R R Z R Z) <= (1/5)^t * L_2 length of q.
+And, L_2 length of q is 1/sqrt(n) 
+  [since we started at a *random* initial position -- this is where we
+  use that fact] 
+So, the probability these are all bad is at most (1/5)^t.
+
+For half of all 42k samples to be bad we need some set of t > 21k to
+be bad.  At most 2^(42k) such sets.  Prob of failure at most
+	2^(42k) * (1/5)^(21k) = (4/5)^(21k) <= (1/100)^k.   QED

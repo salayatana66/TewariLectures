@@ -1,0 +1,290 @@
+Notes for 10/12/11			15-859(M) Randomized Algorithms
+* Probability basics					
+* linearity of expectation		Handout: homework 1
+  -- Gambler's odds problem
+  -- analyzing randomized quicksort
+* game-theoretic view of randomized algorithms
+* randomized lower bounds
+
+Readings: Today and next time doing Ch1 and parts of Ch2. Then next
+thurs we'll be looking at probabilistic inequalities in Ch 3.2, 4.1,
+and then using them in analysis of some algorithms.
+=============================================================================
+
+One thing: if in class you find me making fuzzy plausible-sounding
+but not completely clear probabilistic statements, feel free to call
+me on them.  Especially important in this area to be precise and make
+sure every step is legitimate.  E.g., in coloring alg, made statement
+that expected running time of alg is <= expected time for random walk
+to reach one of the endpoints, and it's worth at home sitting down and
+really concincing yourself mathematically about that, and if you're
+not convinced come talk with me.
+
+PROBABILITY BASICS
+==================
+
+* A probabilistic setting is defined by a SAMPLE SPACE and a PROBABILITY 
+MEASURE.  E.g., if we roll 2 dice, the sample space consists of the 36
+possible outcomes <a,b>, and the prob measure assigns prob 1/36 to each.
+An EVENT is a subset of the sample space (like the event that the dice
+sum to 3), and the points are called ELEMENTARY EVENTS. In a discrete
+probability distribution (as opposed to continuous ones), these
+elementary events have probabilities and the probability of an event
+is the sum of the probabilities of the elementary events inside it.
+For example, Pr(dice sum to 3) = 2/36.  The event "the first die is a
+1" is formally the set of elementary events in which the first die is
+a 1, and has prob 1/6.  The event "the dice sum to 7" also has prob 1/6. 
+
+Pr(A|B) = Pr(A and B)/Pr(B).  [renormalizing as if B is entire sample space].
+  - E.g., Pr(first die is 1 | dice sum to 3) = 1/2
+
+Pr(A|B) = Pr(B|A)Pr(A)/Pr(B).  Bayes rule.
+
+Two events A,B are INDEPENDENT if Pr(A and B) = Pr(A)*Pr(B).
+Equivalently Pr(A|B) = Pr(A).  Or Pr(B|A) = Pr(B). (ignoring zeroes)
+
+* A RANDOM VARIABLE is a function from elementary events to integers or reals.
+E.g., another way to talk about these dice is let X_1 = result of
+first die, X_2 = result of second die, and X = X_1 + X_2.  Then might
+ask: what is Pr(X = 3)?
+
+Two RVs X,Y are independent if events X=x, Y=y are indep for all x,y.
+
+EXPECTATION
+-----------
+For discrete RVs, in terms of elementary events e, can write as:
+
+  E[X] = SUM_e Pr(e) * X(e)
+
+or, often think of as:  (Grouping by value of X(e))
+
+  E[X] = SUM_a (Pr(X=a) * a )
+
+E.g., E[sum of two dice] = 1/36 * 2 + 2/36 * 3 + 3/36 * 4 + ...
+
+Def: E[X|A].  E.g., E[1st die | sum = 3] 
+  E[X|A] = avg_{e in A} X(e) = [1/pr(A)]*SUM_{e in A} Pr(e)X(e).
+
+For any partition of space into disjoint events A_1, A_2, ...,
+
+E[X] = SUM_i (Pr(A_i) * E[X | A_i])
+
+In other words, to get the average of X overall can compute the
+average in each A_i, and then weight by their probabilities.  In this
+class, a typical random variable we will be interested in is the
+running time of our randomized algorithm.  When the algorithm makes a
+k-way decision, we can then say that the expected time is the sum over
+decisions of the prob of that decision times the expected time given
+that decision.  E.g., like in the algs from last time. 
+
+VIF (Very Important Fact): LINEARITY OF EXPECTATION
+---------------------------------------------------
+For random variables X and Y, E[X+Y] = E[X] + E[Y] even if not independent. 
+
+Proof: Use definition.  Z=X+Y. E[Z] = sum_e Pr(e) Z(e) = sum_e
+Pr(e)*[X(e)+Y(e)]...
+
+Really useful since allows to decompose complicated RVs into simple ones.
+E.g., roll 10 dice - what is expected value of sum?
+
+CARD SHUFFLING
+--------------
+Take a fresh deck of 52 cards and shuffle iuntil random.  How many
+cards do we expect to be at the same position as when they started?
+Looking for expectation of an RV X.  X = X_1 + .. X_52.
+X_i = 1 if ith card ended where it started and 0 if not.
+What is E[X_i]?  What is E[X]?
+
+
+GAMBLER'S ODDS PROBLEM
+----------------------
+Say you go into casino with $k.  Say has fair games: at any time t can
+bet some amount and for even money you have 50/50 chance of winning.
+Say you have some strategy - determines how much to bet and when and
+when to leave, but must leave by end of the day.  What's best strategy
+for highest expected amount by the end of the day?
+
+* Let's define the random variable X_i to be the gain at time i.  If X
+is the random variable denoting the amount we win by the end of the
+day, then X = X_1 + X_2 + ... + X_N, where N=#seconds in a day.  Note
+that these X_i's could be horribly dependent (e.g., depending on
+whether you won or lost in your last bet, you might bet more or less).
+Nonetheless, if we just look at one of the X_i, it's easy to see that
+E[X_i] = 0.  For instance: let p_ij be the overall probability that
+you will bet j dollars at time at time i (which might be painful to
+calculate, but that's ok, we don't need to).  
+So, E[X_i] = SUM_j[p_ij * (0.5*j + 0.5*(-j))] = 0.
+
+Now, use linearity of expectation: E[X] = E[X_1 + ... + X_N] = E[X_1]
++ ... + E[X_N] = 0.
+
+(Lesson: simplify by setting up simple random variables and using
+linearity of expectation).
+
+RANDOMIZED QUICKSORT
+--------------------
+Simple fast algorithm for sorting array of size n.
+
+	1) pick an element as pivot^*
+			(or halt if array has size 0 or 1)
+	2) split array into LESS, EQUAL, and GREATER by comparing each
+			element to the pivot.
+	3) recursively sort LESS and GREATER
+
+*version 1: use leftmost element as pivot.  But if input is already
+sorted or reverse-sorted, can take Omega(n^2) time.
+
+*version 2: "median of 3" (left, middle, right).  What can we say
+about worst-case time for that?
+
+*RANDOMIZED-QUICKSORT: pick a *random* element as pivot.
+
+Prove that for *any* input I of size n, expected time E[T(I)] = O(n log n). 
+Key point is bound is worst-case over inputs, and in expectation just
+over internal randomization of algorithm.
+
+To measure running time will count number of comparisons.  Key to
+analysis is to break our random variable X = total number of
+comparisons down into simpler RVs 
+
+Define X_ij = 1 if we *did* directly compare the ith smallest and jth smallest
+			elements in the sorting process
+	    = 0 if we *didn't*.
+
+So, E[X_ij] = Pr(compare ith and jth smallest)
+
+                                n   n                      n   n
+* So, how can we write X?  X = SUM SUM  X_ij.  So, E[X] = SUM SUM   E[X_ij]
+                               i=1 j=i+1                  i=1 j=i+1
+
+
+- denote ith smallest by e_i, jth smallest by e_j, and conceptually,
+imagine lining the elements up in sorted order.  If pivot we choose
+is between e_i and e_j then these two end up in different buckets and we
+*dont* compare them.  If pick e_i or e_j as pivot then we *do*
+compare them.  If pick pivot < e_i or > e_j then both end up in same
+bucket and we repeat.  So, can think of as a dart game: we throw a
+dart at random, and if outside the range we repeat, until we hit e_i
+or e_j or something in-between at which point we stop.  Pr(we end up
+hitting e_i or e_j) = 2/(j-i+1).  This is E[X_ij].  What does this
+mean?  If j=i+1, prob is 2/2.  If j=i+2, prob is 2/3. j=i+3, prob is 2/4...
+
+- So, have
+	 n  
+	SUM 2(1/2 + 1/3 + 1/4 + ... + 1/(n-i+1)).
+	i=1 
+
+     <= SUM 2(H_n - 1), where H_n = 1 + 1/2 + 1/3 + ... + 1/n is called
+  the "nth harmonic number". H_n is in the range [ln(n), ln(n)+1].  Can
+  see that by thinking of as discrete version of the integral of 1/x.
+
+- So, our total is < 2n(H_n - 1) <= 2n*ln(n).
+
+
+SORTING LOWER BOUNDS AND DECISION TREE VIEW OF ALGORITHMS
+=========================================================
+
+A COMPARISON-BASED SORTING ALGORITHM takes as input an array A of n
+items, and can only gain information about the items by comparing
+them.  Each comparison ``is A[i] > A[j]?'' returns YES or NO and
+counts as 1 time-step.  The algorithm may for free reorder items based
+on the results of comparisons made.  In the end, the algorithm must
+output a permutation of the input in which all items are in sorted order.
+
+THEOREM 1: Any deterministic comparison-based sorting algorithm must
+perform at least lg(n!) = Omega(n log n) comparisons to sort n
+elements in the worst case.
+
+PROOF #1: Fix some set of n distinct elements a_1,...,a_n and let S be
+the set of all possible orderings.  Now, consider some algorithm ALG.
+It makes some first comparison Q.  For some inputs, the answer will be
+YES and for some the answer will be NO.  Build a tree with nodes
+corresponding to the comparisons made and edges for the answers.  Q
+will be at the root, and if it gets the answer NO, then the algorithm
+asks some comparison Q_0, whereas if Q returned YES then the algorithm
+asks Q_1.  The key point is the next query (comparison) is a function
+of the answers received so far, so there is a well-defined tree.  Now,
+the second key point is that if more that one ordering in S reaches
+some node, that node can't be a leaf (because otherwise the permutation 
+outputted there would be incorrect for at least one of them).  So, we
+have n! leaves, which means the tree has depth at least lg(n!).
+
+PROOF #2: Another way looking at this is as follows.  For a
+deterministic algorithm, the permutation it outputs is solely a
+function of the series of answers it receives (any two inputs
+producing the same series of answers will cause the same permutation
+to be output).  So, if an algorithm always made at most $k < \lg(n!)$
+comparisons, then there are at most $2^k < n!$ different permutations
+it can possibly output.  In other words, there is some permutation it
+*can't* output.  So, the algorithm will fail on any input for
+which that permutation is the only correct answer.
+
+THEOREM 2: For any deterministic comparison-based sorting algorithm
+ALG, the average-case number of comparisons (the number of comparisons
+on average on a *randomly* chosen permutation of n distinct elements)
+is at least lg(n!).
+
+PROOF: The proof is just that if you take a tree of N=n! leaves, not
+only is the maximum depth at least lg(N), but the *average* depth of
+leaves is at least lg(N).  Can show like this: give each leaf at depth
+d a weight of 1/2^d.  So, the total weight over all leaves is 1 (why?).
+So, the average weight of a leaf is 1/N.  I.e., 
+     avg_{leaves L} 2^{-depth(L)} = 1/N.
+
+Now, the function 2^{-x} is convex.  So, avg_x f(x) >= f(avg(x)).
+
+This means 2^{- avg_L depth(L)} <= 1/N, so avg_L (depth(L)) >= lg(N).
+
+
+LOWER BOUNDS FOR RANDOMIZED ALGORITHMS AND GAME-THEORETIC VIEW
+==============================================================
+
+THEOREM 3: The above bound holds for randomized algorithms too.
+
+PROOF: The first step is to argue that with respect to counting
+comparisons, we can think of a randomized algorithm ALG as a
+probability distribution over deterministic algorithms.  In
+particular, we can think of a randomized algorithm ALG as a
+deterministic algorithm with access to a special ``random bit tape'':
+every time ALG wants to flip a coin, it just pulls the next bit off
+that tape.  In that case, for any *given* run of algorithm ALG, say
+reading bit-string s from that tape, there is an equivalent
+deterministic algorithm ALG_s with those bits hardwired in.  Algorithm
+ALG is then a probability distribution over all those deterministic
+algorithms ALG_s.
+
+This means that the expected number of comparisons made by randomized
+algorithm ALG on some input I is just 
+SUM_s Pr(s)*(Running time of ALG_s on I).
+
+So, the expected running time of the randomized algorithm is just an
+average over deterministic algorithms.   Since each deterministic
+algorithm has average-case running time at least lg(n!), any average
+over them must too.  Formally, the average-case running time of the
+randomized algorithm is 
+
+AVG_I SUM_s Pr(s)*(Running time of ALG_s on I)
+ = SUM_s AVG_I Pr(s)*(Running time of ALG_s on I)
+ = SUM_s Pr(s) AVG_I (Running time of ALG_s on I)
+ >= SUM_s Pr(s) lg(n!)
+ = lg(n!)
+
+One way to think of this is to think of a matrix with one row for
+every possible deterministic comparison-based sorting algorithm (there
+could be a lot of rows!) and one column for every possible permutation
+of n given input elements (there are a lot of columns too).  Entry
+(i,j) in this matrix contains the running time of algorithm i on input
+j.  The worst-case deterministic lower bound tells us that for each
+row i there exists a column j_i such that the entry (i, j_i) is
+large.  Can think of this as a game where the adversary gets to move
+after seeing the algorithm-player move.  The average-case
+deterministic lower bound tells us that actually there is a randomized
+strategy for the adversary (namely, pick a column uniformly at random)
+such that even knowing this, the algorithm-player can't beat lg(n!).
+Moreover, since the adversary has committed, randomization by the
+algorithm player doesn't help.  You can think of this as the "easy
+direction" of the minimax theorem.  If there exists a randomized strategy
+for the adversary such that no matter what the algorithm player does,
+it pays more than X in expectation, then there can't be a randomized
+strategy for the algorithm that guarantees paying less than X in
+expectation.

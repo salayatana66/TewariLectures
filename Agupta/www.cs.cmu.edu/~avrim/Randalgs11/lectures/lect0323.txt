@@ -1,0 +1,236 @@
+ 03/23/11            15-859(M) Randomized Algorithms
+
+* Learning theory III: Rademacher bounds
+===========================================================================
+
+In the last class, Anupam talked about Azuma's inequality and
+McDiarmid's inequality, together with some interesting uses of these
+for analyzing the chromatic number of random graphs and the length of
+the shortest TSP tour of random instances in the plane. Today we will
+talk about an interesting application in machine learning.
+
+In particular, remember in our distributional learning setting we have
+data from some unknown distribution D, labeled by some unknown target
+function f (so we can view these together as a distribution P over
+labeled examples), and we have some hypothesis class H we are using
+(like linear separators).  Say we take some dataset S of examples
+drawn iid from P, optimize over H, and find that the best hypothesis h
+has error alpha over S. The question is: what can we say about the
+true error of h?
+
+When we talked about this earlier, we gave bounds in terms of
+VC-dimension and shatter coefficients.  To recap:
+
+Let H[S] = set of different ways of labeling dataset S using functions in H.
+Let H[m] = max_{|S|=m} |H[S]|
+
+THEOREM 1: For any class H, distrib P, if the number of examples seen
+m satisfies: m > (8/epsilon^2)[ln(2H[2m]) + ln(1/delta)]
+then with prob 1-delta, all h in H have |err_P(h)-err_S(h)| < epsilon.
+
+SAUER'S LEMMA: H[m] < m^d, where d = VCdim(H).  So can use Sauer's
+lemma to convert to bounds in terms of VC dimension.  Resulting bound
+is O((1/epsilon^2)[d*ln(1/epsilon) + ln(1/delta)]).
+
+Just to restate Theorem 1 in the form we'll be examining, let's 
+write epsilon as a function of m.  So for any class H, distrib P, whp
+all h in H satisfy:
+    err_P(h) <= err_S(h) + sqrt{8ln(2H[2m]/delta) / m}.
+
+(And we bound in the other direction as well, but let's just focus on
+this direction - i.e., how much can we be overfitting the sample).
+
+---------------------------------------------------------------------
+
+These bounds are nice but have two drawbacks:
+
+1. Computability/estimability: say we have a hypothesis class H
+   that we don't understand very well.  It might be hard to compute or
+   estimate H[m], or even |H[S]| for our sample S.
+
+2. Tightness.  Our bounds have two sources of loss.  One is that
+   we did a union bound over the labelings of the double-sample S,
+   which is overly pessimistic if many of the labelings are very
+   similar to each other.  A second is that we did worst-case over S,
+   whereas we would rather do expected case over S, or even just have a
+   bound that depends on our actual training set. 
+
+We are going to address both of these.
+
+In particular, to view this as a randomized algorithms problem,
+imagine we are handed a black-box optimizer A that given any set of
+labeled examples, will find the h in H that minimizes empirical error
+with respect to those labeled examples.
+
+Then, here is one natural heuristic we might try: take the dataset S,
+strip off the actual labels and replace them instead with uniform
+random labels.  Then run A on this new dataset and see how well it
+does.  Suppose we find that, on average, (say we repeat this a few
+times) algorithm A is able to get error 43%.  Well, since these are
+random labels, this means they are being labeled as if the target
+function f was a random function and so A *should* be getting error
+50%.  The gap (50% - 43% = 7%) is all due to overfitting.  So, assume
+we were overfitting by this much on the actual target function, and
+add this 7% to err_S(h) to get a heuristic bound on err_P(h).
+
+Rademacher bounds say that if you double this (in this case, add 14%)
+then (together with a very low-order term) this indeed is a legal
+upper bound.
+
+BTW, to show that in some cases you indeed might need to double it,
+consider a target function that's all positive, and a hypothesis class
+H_t = {h : h labels at most t points in X as positive and the rest as
+negative}.  Here X can be any domain with >> t points.  Then given any
+set S of size at most t, we can find a hypothesis h that has
+err_S(h)=0, but it will have err_P(h) = 1-o(1).  On random labels it
+will also get them perfect, with overfitting 0.5.  This is a bit of a
+crazy example, though, and I think it is a nice question whether in
+interesting cases one can get rid of the factor of 2.
+
+As an aside, you could view the H[m] bounds a bit in this way.  The
+bounds of Theorem 1 could be viewed as picking random labels for the
+points in S and seeing how often we can get empirical error 0, since
+this will estimate H[m]/2^m.  The problem is that this quantity will
+be extremely small for the values of m of interest.  In particular, we
+care about the case where H[m] is approximately 2^{m*epsilon^2} so we
+would have to repeat this an exponential number of times.  In
+contrast, estimating the average error is *much* easier since that's a
+number between 0 and 1.
+
+
+----------------------------------------------------------------------
+
+Rademacher averages
+===================
+For a given set of data S = {x_1, ..., x_m} and class of functions F,
+define the "empirical Rademacher complexity" of F as:
+
+    R_S(F) = E_sigma [ max_{h in F} (1/m)(sum_i sigma_i * h(x_i)) ]
+
+where sigma = (sigma_1, ..., sigma_m) is a random {-1,1} labeling.
+
+I.e., if you pick a random labeling of the points in S, on average how
+well correlated is the most-correlated h in F to it?  Here, we are
+viewing hypotheses as functions from X to {-1,1}.
+
+We then define the (distributional) Rademacher complexity of F as:
+
+    R_D(F) = E_S R_S(F).
+
+
+We will then prove the following theorem:
+
+THEOREM 2: For any class H, distrib P = (D,f), given a set S of m examples
+from P, with probability at least 1-delta every h in H satisfies
+
+    err_P(h) <= err_S(h) + R_D(H) + sqrt(ln(2/delta)/2m).
+             <= err_S(h) + R_S(H) + 3*sqrt(ln(2/delta)/2m).
+
+----------------------------------------------------------------------
+
+Relating Rademacher and VC: We can see that this is never much worse
+than our VC bounds.  In particular, let's consider how big can R_S(H)
+be?  If you fix some h and then pick a random labeling, Hoeffding
+bounds say the probability the correlation is more than 2epsilon is at
+most e^{-2*m*epsilon^2}. So setting this to delta/H[m] and doing a
+union bound, we have at most a delta chance that any of the labelings
+in H have correlation more than 2*sqrt(ln(H[m]/delta)/(2m)), so the
+expected max correlation R_S(H) can't be much higher than that.  On
+the other hand, it could be a lot lower if many of the labelings are
+very similar to each other.  OK, now on to the proof of Theorem 2...
+
+----------------------------------------------------------------------
+Let's recall McDiarmid's inequality:
+
+Say x_1, ..., x_m are independent RVs, and phi(x_1,...,x_m) is some
+real-valued function.  Assume that phi satisfies the Lipschitz
+condition that if x_i is changed, phi can change by at most c_i.  Then
+
+      Pr[phi(x) > E[phi(x)] + lambda] <= e^{-2*lambda^2 / sum_i c_i^2}
+
+
+Proof of THEOREM 2
+==================
+STEP 1: The first step of the proof is to simplify the quantity we
+care about.  Specifically, let's define 
+    MAXGAP(S) = max_{h in H} [err_P(h) - err_S(h)].
+
+We want to show that with probability at least 1-delta, MAXGAP(S) is
+at most some epsilon. 
+
+As a first step, we can use McDiarmid to say that whp, MAXGAP(S) will
+be close to its expectation.  In particular, the examples x_j in S are
+independent RVs and MAXGAP can change by at most 1/m if any individual
+x_j in S is replaced (because the gap for any specific h can change by
+at most 1/m).  So, using this as our "phi", with probability at least
+1 - delta/2, we get:
+     MAXGAP(S) <= E_S [MAXGAP(S)] + sqrt(ln(2/delta)/(2m)).
+
+So, to prove the first (main) line of THEOREM 2, we just need to show
+that  E_S[ MAXGAP(S) ] <= R_D(H).
+
+In fact, the second line of the theorem follows immediately from the
+first line plus an application of McDiarmid to the random variable
+R_S(H) [how much can changing a training example change R_S(H)?  Ans:
+2/m.].  So, really we just need to prove the first line.
+
+STEP 2: The next step is to do a double-sample argument just like we
+did with VC-dimension.
+
+Specifically, let's rewrite err_P(h) as E_{S'} [err_{S'}(h)], where S'
+is a (new) set of m points drawn from P (this is the "ghost sample").
+So, we can rewrite E_S[MAXGAP(S)] as: 
+
+    E_S [ max_{h in H} [ E_{S'} [ err_{S'}(h) - err_{S}(h) ] ] ]
+
+ <= E_{S,S'} [ max_{h in H} [ err_{S'}(h) - err_{S}(h) ] ]
+          (i.e., get to pick h after seeing both S *and* S')
+
+If we let S = {x_1,...,x_m} and let S' = {x_1', ..., x_m'} then we can
+rewrite this as:
+
+    E_{S,S'} [ max_{h in H} [ sum_i [err_{x_i'}(h) - err_{x_i}(h)]/m] ]
+
+where I'm using err_{x}(h) to denote the loss of h on x (1 if h makes
+a mistake and 0 if h gets it right).
+
+Now, as in the VC proof, let's imagine that for each index i, we flip
+a coin to decide whether to swap x_i and x_i' or not before taking the
+max.  This doesn't affect the expectation since everything is iid.
+So, letting sigma_i in {-1,1} at random, we can rewrite our quantity as:
+
+    E_{S,S',sigma}[max_{h in H}[sum_i sigma_i[err_{x_i'}(h) - err_{x_i}(h)]/m]]
+
+
+ <= E_{S',sigma} [ max_{h in H} [sum_i sigma_i * err_{x_i'}(h)/m] ] -
+    E_{S,sigma}  [ min_{h in H} [sum_i sigma_i * err_{x_i}(h)/m] ] 
+    (i.e., gap is only larger if allow the two h's to differ)
+
+  = 2*E_{S,sigma} [ max_{h in H} [sum_i sigma_i * err_{x_i}(h)/m] ]
+    (by symmetry, since sigma_i is random {-1,1}.  I.e., out of the
+    allowed error profiles, we either want to maximize 1's minus -1's or
+    vice-versa) 
+
+Now, we're just about done.  The quantity here is a lot like the
+Rademacher complexity of H except instead of looking at the
+dot-product <sigma,h> (viewing each as a vector of m entries), we are
+looking at <sigma, loss(h)> where loss(h) is the vector of losses of
+h.  In addition we have an extra factor of 2.
+
+To translate, suppose that in the definition of Rademacher complexity
+we replace <sigma,h> with <sigma * f, h> where "*" is component-wise
+multiplication and f is the target function.  That is, instead of
+viewing sigma as a random labeling, we view it as a random
+perturbation of the target.  Notice that "sigma * f" has the same
+distribution as sigma, so this doesn't change the definition.  Now,
+<sigma * f, h> = <sigma, f * h>.  This is nice because f * h is the
+vector whose entry i is 1 if h(x_i)=f(x_i) and equals -1 if h(x_i) !=
+f(x_i).  In other words, f*h(x) = 1 - 2err_x(h).
+
+So, R_D(H) = E_{S,sigma} [max_{h in H} [sum_i sigma_i[1-2err_{x_i}(h)]/m]]
+           
+           = 2*E_{S,sigma} [ max_{h in H} [sum_i sigma_i * err_{x_i}(h)/m]]
+(since E[sum_i sigma_i*1] = 0) 
+
+So, this gives us what we want.
+-----------------------------------------------------------------------

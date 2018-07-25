@@ -1,0 +1,308 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="content-type" content="
+  text/html; charset=us-ascii" />
+  <title>15-859(M): Randomized Algorithms, Spring 2011</title>
+<script src="ASCIIMathML.js" type="text/javascript">
+</script>
+
+<!--<style type="text/css" media="screen">
+body { background-color: #F4F4F4;
+   /* font-family: Georgia, "Times New Roman", Times, serif;
+   font-size: 80%; */ /* Resets 1em to 10px */ 
+   }
+.notes {color: #333333;}
+ul {color: #003380;}
+ol {color: #983514;}
+li {padding-top: 0.10em;}
+h3 {color: #444444;}
+</style>-->
+
+</head>
+
+<body onload="translate()">
+<h2>15-859(M): Randomized Algorithms, Spring 2011</h2>
+<dl>
+<dd><a href="http://www.cs.cmu.edu/~avrim">Avrim Blum</a> and <a href="http://www.cs.cmu.edu/~anupamg">Anupam Gupta</a>
+<dd><b>Time</b>: MW 1:30-2:50, GHC 4102<br>
+  <b>Course blog:</b> <a href="http://cmurandomized.wordpress.com/">http://cmurandomized.wordpress.com/</a><br> <br>
+  <b>Office Hours:</b> TBA<br>
+  <b>Course description:</b> policies etc. <a href="course.html">here</a>
+</dl>
+
+<hr>
+
+<h3>Homeworks</h3>
+<ol>
+  <li><a href="assignments/hw1.pdf">Homework 1</a>. Due Jan 26. <a href="sols/hw1sol.pdf">Solutions</a>.</li>
+  <li><a href="assignments/hw2.pdf">Homework 2</a>. Due Feb 9.  <a href="sols/hw2sol.pdf">Solutions</a>.</li>
+  <li><a href="assignments/hw3.pdf">Homework 3</a>. Due Feb 23. <a href="sols/hw3sol.pdf">Solutions</a>.</li>
+  <li><a href="assignments/hw4.pdf">Homework 4</a>. Due Mar 16. <a href="sols/hw4sol.pdf">Solutions</a>.</li>
+  <li><a href="assignments/hw5.pdf">Homework 5</a>. Due Apr 4. <a href="sols/hw5sol.pdf">Solutions (partial)</a>. </li>
+  <li><a href="assignments/hw6.pdf">Homework 6</a>. Due Apr 27.</li>
+
+  <li><a href="assignments/final.pdf">Final</a>. Due 48 hours after you start, Friday 5/6 11:59pm at the latest.</li>
+</ol>
+(Solutions accessible only from within CMU/Pitt.)
+
+<hr>
+
+<h3>Lecture Notes, Readings, etc.</h3>
+
+
+<ol>
+  <li>01/10: <a href="lectures/lect0110.txt">Admin, Intro, Example:
+	      partitioning a 
+3-colorable graph. "If you can't walk
+in the right direction, sometimes it's enough to walk randomly";
+Schoning's algorithm</a>
+</li>
+
+
+<li>01/12: <a href="lectures/lect0112.txt">Basic definitions, linearity of
+	  expectation, quicksort, game theoretic view, randomized
+	  lower bounds</a>. (Chap. 1, 2.2)
+</li>
+
+
+<li>01/17: no class (MLK day)
+</li>
+
+
+<li>01/19: <a href="lectures/lect0119.txt">Randomized complexity classes, a
+	  monte-carlo Min Cut alg</a>. (Chap. 1.1, 1.5, 2.3, 10.2)
+</li>
+
+
+<li>01/24: <a href="lectures/lect0124.pdf">Probabilistic inequalities: Markov,
+	  Chebyshev, Chernoff bounds, randomized rounding</a>. (Chap
+3.1-3.4, 4.1, 4.3)
+</li>
+
+
+<li>01/26: MAX-SAT, probabilistic
+	  method & method of conditional expectations. (Chap 
+	5.1, 5.2, 5.6)
+ <ul><i>
+   <li>Avrim's <a href="lectures/avrim-maxsat.pdf">notes</a> from the previous incarnation of the course.</li>
+   <li><a href="http://cmurandomized.wordpress.com/2011/01/27/notes-on-lecture-6/">Discussion</a> on derandomization, and <a href="http://cmurandomized.wordpress.com/2011/01/27/and-lecture-6-references/">references</a> on our blog</li>
+   <li>The <a href="http://www-math.mit.edu/~goemans/PAPERS/GoemansWilliamson-1994-NewApproximationAlgorithmsForTheMaximumSatisfiabilityProblem.pdf">Goemans-Williamson paper</a> giving the 3/4 approximation.</li>
+ </i></ul>
+</li>
+
+
+<li>01/31: The Lovasz Local Lemma. (Chap 5.5)
+ <ul><i>
+   <li>The <a href="http://www.cs.cmu.edu/afs/cs.cmu.edu/project/phrensy/pub/papers/LeightonMR94/LeightonMR94.html">Leighton Maggs Rao paper</a> giving the $O(C+D)$ length schedule.</li>
+   <li>Aravind Srinivasan's <a href="http://www.cs.umd.edu/class/spring2003/cmsc858t/handouts/h8.pdf">notes </a> on the LLL and the Leighton Maggs Rao paper.</li>
+   <li>Terry Tao's <a href="http://terrytao.wordpress.com/2009/08/05/mosers-entropy-compression-argument/">notes</a> on the algorithmic LLL specialized to the Ek-SAT result.</li>
+   </i>And if you'd like to see the proof of slightly more general versions:<i>
+   <li>Notes by <a href="http://www.cs.nyu.edu/spencer/moserlovasz1.pdf">Joel Spencer</a> and <a href="http://www.wisdom.weizmann.ac.il/~feige/algs/LocalLemma.pdf">Uri Feige</a> on the algorithmic versions of LLL.</li>
+
+ </i></ul>
+</li>
+
+
+<li>02/02: Balls and bins and the power of 2 choices.
+(Chap 3.1, 3.6)
+  <ul><i>
+   <li><a href="http://cmurandomized.wordpress.com/2011/02/02/lecture-8-balls-and-bins/">Notes and references</a>
+   on the blog, or as a <a href="lectures/lect0202.pdf">PDF</a>.</li>
+   <li><a href="http://www.cs.cmu.edu/afs/cs.cmu.edu/academic/class/15859m-s11/www/handouts/two-choices-mitz-upfal.pdf">Copy
+   of notes</a> from Mitzenmacher and Upfal (CMU/Pitt only). </li>
+  </i></ul>
+</li>
+
+
+<li>02/07: Cuckoo hashing (guest lecturer: Rasmus Pagh).
+  <ul><i>
+   <li>Rasmus's <a href="http://www.it-c.dk/people/pagh/papers/cuckoo-undergrad.pdf">notes</a>, and the original <a href="http://www.it-c.dk/people/pagh/papers/cuckoo-jour.pdf">paper</a> of Pagh and Rodler.</li>
+   <li>Mike Mitzenmacher's <a href="http://www.eecs.harvard.edu/~michaelm/postscripts/esa2009.pdf">open problems</a> on cuckoo hashing.<br>
+   Some of the problems in the list have been studied subsequently, so make sure you search online before working on them.</li>
+</i></ul>
+
+</li>
+
+
+<li>02/09: Polynomial Identity testing and finding matchings in parallel.
+ <ul><i>
+   <li><a href="http://cmurandomized.wordpress.com/2011/02/09/lecture-10-polynomial-identity-testing-and-parallel-matchings/">Notes and references</a> on the blog, or as a <a href="lectures/lect0209.pdf">PDF</a>.</li>
+ </i></ul>
+</li>
+
+
+<li>02/14: <a href="lectures/lect0214.txt">Online Algorithms:
+	      elevators, ski-rental, and paging</a>. 
+(Chap 13) 
+</li>
+
+
+<li>02/16: <a href="lectures/lect0216_0218.pdf">Learning Theory I:
+	      learning from iid data</a>.
+<ul><i><li>  The PAC model, Occam's razor,
+	      shatter coefficients / VC-dimension, ghost-sample arguments
+</i></ul>
+</li>
+
+
+<li>02/21: <a href="lectures/lect0216_0218.pdf">Learning Theory II:
+	      online learning</a>.
+<ul><i><li>Learning from expert advice,
+	      Randomized Weighted Majority, the Bandit problem and
+	      Exp3 algorithm
+</i></ul>
+</li>
+
+
+<li>02/23: <a href="lectures/lect0223.pdf">Game Theory</a>.
+<ul><i><li>Zero-sum games, minimax theorem, connections to experts problem.
+<li>General-sum games and Nash equilibria (and proof of existence).
+<li>Correlated equilibria and connections to swap-regret.  See <a
+			href="http://www.cs.cmu.edu/~avrim/Papers/regret-chapter.pdf">this book chapter</a>.
+</i></ul>
+</li>
+
+
+<li>02/28: The swap-regret algorithm. FRT/Bartal distance-preserving trees.
+ <ul><i> 
+   <li>Swap-regret results in Section 4.5 of above <a
+			href="http://www.cs.cmu.edu/~avrim/Papers/regret-chapter.pdf">book chapter</a>
+   <li><a href="http://cmurandomized.wordpress.com/2011/03/01/lecture-13-distance-preserving-trees-part-i/">Notes</a> on distance-preserving trees on the blog.
+</li>
+</i></ul>
+</li>
+
+<li>03/02: FRT/Bartal distance-preserving trees: II.
+ <ul><i> 
+   <li><a href="http://cmurandomized.wordpress.com/2011/03/02/lecture-14-distance-preserving-trees-part-ii/">Notes (continued)</a>.</li>
+   <li><a href="lectures/lect0302.pdf">Combined notes</a> as a PDF.
+</li>
+</i></ul>
+
+
+03/07: no class (spring break) <br>
+03/09: no class (spring break) </li>
+
+<li>03/14: The Johnson-Lindenstrauss Flattening Lemma.
+ <ul><i> 
+   <li><a href="http://cmurandomized.wordpress.com/2011/03/15/lecture-17-dimension-reduction/">Notes on the blog</a> and in <a href="lectures/lect0314.pdf">PDF</a>.
+   <li>plus,
+   an <a href="http://cmurandomized.wordpress.com/2011/03/15/lecture-17-dimension-reduction-continued/">alternative
+   view</a> of the second moment sketch (<a href="lectures/lect0314b.pdf">PDF</a>).</li>
+</li>
+</i></ul>
+</li>
+
+<li>03/16: <a href="lectures/lect0316.txt">Oblivious routing on a
+	      hypercube (Valiant/Valiant-Brebner)</a> (Chap 4.2).
+ <ul><i>
+   <li> Plus a <a href="lectures/lect0316.txt">very brief intro to Martingales</a> (Chap 4.4) 
+   <li> See also excellent notes of Satish Rao: <a
+			href="http://www.cs.berkeley.edu/~satishr/cs273.09/rough-notes/lecture5.ps">notes 1</a>,  <a
+			href="http://www.cs.berkeley.edu/~satishr/cs273.09/rough-notes/lecture6.ps">notes 2</a>
+ </i></ul>
+</li>
+
+
+<li>03/21: More martingales.
+ <ul><i> 
+   <li><a href="http://cmurandomized.wordpress.com/2011/03/21/lecture-19-martingales/">Notes on the blog</a> and in <a href="lectures/lect0321.pdf">PDF</a>.
+</li>
+</i></ul>
+</li>
+
+<li>03/23: <a href="lectures/lect0323.txt">Learning Theory III: Rademacher bounds</a>.
+</li>
+
+
+<li>03/28: <a href="lectures/lect0328.txt">Random walks and cover
+	      times, resistive networks</a>.  (Chap 6.1, 6.3, 6.4, 6.5)
+</li>
+
+
+<li>03/30: <a href="lectures/lect0330.txt">Rapid mixing,  Expander graphs, 
+	Impagliazzo-Zuckerman amplification result</a>. (Chap 6.2, 6.7, 6.8). 
+</li>
+
+
+<li>04/04: <a href="lectures/lect0404.txt">Expanders and
+	      eigenvalues</a>. Also <a
+	      href="lectures/nogaproof.pdf">added node by Noga
+	      Alon</a>. (Chap 11.1)
+</li>
+
+
+<li>04/06: <a href="lectures/lect0406.txt">Rapid mixing for approximate counting and approximating the permanent</a>. (Chap 11.2, 11.3)
+</li>
+
+
+<li>04/11: Random rounding of Semi-definite Programs (SDPs)
+  <ul><i> 
+   <li><a href="http://www.cs.cmu.edu/~anupamg/adv-approx/lecture14.pdf">Notes on max-cut rounding</a> (from a previous course, lecture by Ryan).
+   </li>
+   <li>His lecture on <a href="http://www.cs.cmu.edu/~anupamg/adv-approx/lecture15.pdf">coloring 3-colorable graphs</a> gives an improved bound we didn't get to.
+   </li>
+   <li>Chapter 6 of the <a href="http://www.designofapproxalgs.com/download.php">Williamson/Shmoys book</a>  has very nice notes; more advanced stuff is in Chapter 13.</li>
+</i></ul>
+
+
+</li>
+
+
+<li>04/13: Randomization in Computational Geometry. (Chap 9)
+  <ul><i> 
+   <li><a href="http://www.cs.cmu.edu/afs/cs.cmu.edu/academic/class/15859-f09/www/handouts/seidel-backwards-analysis.pdf">Notes on backwards analysis</a> by Raimund Seidel.
+   </li>
+   <li>The <a href="http://en.wikipedia.org/wiki/Crossing_number_%28graph_theory%29">crossing number lemma</a>.
+</i></ul>
+
+</li>
+
+
+
+<li>04/18: Graph Sparsification.
+  <ul><i> 
+   <li><a href="handouts/karger-random-sampling-mor-paper.pdf">Karger's paper</a> showing that sampling preserves cuts when min-cuts are large. (Theorem 2.1)
+   </li>
+   <li>The <a href="http://arxiv.org/abs/cs/0207078">Benczur-Karger paper</a> with general graph sparsification.
+   <li>Recent developments mentioned in lecture: <a href="http://arxiv.org/abs/0803.0929">Spielman &amp; Srivastava</a>, <a href="http://arxiv.org/abs/0808.0163">Batson, Spielman &amp; Srivastava</a>, and 
+<a href="http://arxiv.org/abs/1005.0265">Fung, Harvey</a>, <a href="http://arxiv.org/abs/1005.0670">Hariharan  &amp; Panigrahi</a> (<a href="http://www.math.uwaterloo.ca/~harvey/Publications/Sparsifier/Sparsifier-STOC.pdf">merged stoc '11 paper</a>).
+   <li>Not covered/mentioned in lecture: sparsification in streaming models <a href="http://drops.dagstuhl.de/opus/volltexte/2011/3033/pdf/41.pdf">Kelner-Levin</a>, <a href="http://arxiv.org/abs/1004.4915">Goel, Kapralov, Khanna</a>, <a href="http://arxiv.org/abs/0902.0140">Ahn, Guha</a>, etc.
+</i>
+
+
+</ul>
+
+
+</li>
+
+
+<li>04/20: <a href="lectures/lect0420.pdf">Differential privacy</a>.
+</li>
+
+
+<li>04/25: Quantum computing
+</li>
+
+
+<li>04/27: project presentations and pizza party <a href="schedule.txt">Schedule</a>.
+</li>
+</ol>
+<hr>
+
+<h3>Other Information</h3>
+<ol>
+  <!--<li><a href="misc-stuff.html">Course description, prereqs, etc.</a></li><br>-->
+  <!--<li>Scribe notes LaTeX <a href="template.tex">template</a>.</li>-->
+  <li><a href="http://ipe.compgeom.org/">Ipe</a>: a simple yet powerful drawing editor.</li>
+  <li>A <a href="http://jmlr.csail.mit.edu/reviewing-papers/knuth_mathematical_writing.pdf">PDF version</a> of <i><a href="http://www-cs-faculty.stanford.edu/~knuth/klr.html">Mathematical Writing</a></i> by Knuth, Larrabee, and Roberts. Please review pp.1-6 before you begin writing solutions/notes/any mathematical content!</li>
+</ol> 
+
+<hr>
+<i>Maintained by Avrim Blum and Anupam Gupta</i>
+
+</body>
+</html>

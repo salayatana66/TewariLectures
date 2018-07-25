@@ -1,0 +1,313 @@
+ 04/06/11              15-859(M) Randomized Algorithms
+						  Reading: Chapter 11
+* Approximate counting via random sampling
+* Random sampling via random walks on appropriately-define Markov Chains
+* Approximating the permanent
+========================================================================
+Approximate counting
+--------------------
+There are a lot of interesting problems that fall into the following
+framework.  We have some universe U of points, some subset S of which
+are special.  We want to know |S| (or in a continuous domain, the
+volume of S), or equivalently, the probability that a randomly drawn
+point from U belongs to S.
+
+E.g., S = some polygonal object in the plane, U = a bounding rectangle.
+      What is the volume of S?
+
+E.g., U = strings of length n, S = those that satisfy a given DNF formula F.
+      How many solutions are there to F?
+
+One easy thing to do: pick a bunch of samples in U, and observe how
+many fall into S (assume we can verify whether a point is in S in poly time),
+and then take the ratio.
+
+But, what if |S|/|U| is small?  In this case, this does not
+approximate |S| very well.  Can we do better?
+
+In fact, many of these counting problems are #P-hard.  E.g., reporting
+the number of solutions to a given DNF formula is #P-hard.  Computing
+the permanent of a matrix (which for A(G) corresponds to asking how many
+perfect matchings there are in G) is #P-hard.
+
+Goal: fpras: for any epsilon>0, produce an answer A such that 
+	A is in [(1-epsilon)|S|, (1+epsilon)|S|] in time poly in 
+	n and 1/epsilon.  (n = description length of points in U).
+
+
+Idea: suppose we can create a sequence of polynomially-many sets:
+	S=S_0 contained in S_1 contained in ... S_m ... contained in U
+  where |S_i|/|S_{i-1}| is at most poly(n).  Then, we can reduce the
+  counting problem to the random sampling problem:
+
+  --> pick a random point from S_1, and see if it's in S.  Since
+	|S|/|S_1| is at least 1/poly, we can get a good relative-error
+	estimate of this ratio.  Say |S| = p_1*|S_1|.  We find q_1 with
+	(1-epsilon/m)p_1 < q_1 < (1+epsilon/m)p_1.   Then do for |S_1|/|S_2|, 
+	etc.
+
+	Finally, output q_1*q_2*...*q_m*|U| which is at least
+	(1-epsilon)*|S| and at most (1+2epsilon)*|S|.
+
+So, if we can set up this sequence of sets, then the problem boils
+down to: how do we pick a random element of S_i?  We'll do this by
+setting up some appropriate neighborhood structure and doing a random
+walk, and showing that this walk is rapidly mixing.
+
+
+Approximating the Permanent
+===========================
+Per(A): like determinant except don't alternate signs. 
+
+If G is an n by n bipartite graph on (X,Y), and we define a_ij = 1 if
+there is an edge from element i in X to element j in Y, then Per(A) is
+the number of perfect matchings in A.  Equivalently, if G is a
+directed graph and we define A=A(G) in the usual way, then Per(A) is
+the number of cycle covers.
+
+     *---*                  1 0 1
+      \ /    
+     *---*                  0 1 0
+      / \
+     *---*                  1 0 1
+
+Det(A) is easy to compute, but Per(A) is #P-hard.  We'll be looking at
+approximating Per(A) where A is the matrix for a n by n bipartite graph of
+minimum degree n/2.  (Computing exactly is still #P-hard for these.) 
+
+Looking at graph G, bipartite on two sets X and Y of n vertices each. 
+m = number of edges.
+
+* One strategy: pick a random permutation on (1,...,n) and see if it
+corresponds to a matching in the graph and repeat.  Would be fine if
+graph was REALLY dense, but the problem is we might never find a
+matching this way.
+
+Instead, we'll do it like this:
+
+* Define M_k as set of k-edge matchings.  Our goal is to estimate |M_n|.
+  Do a random walk on M_k U M_{k-1}.  (Will define some graph on these
+  sets of matchings and show that it quickly approaches uniform.)  Then
+  see how often it ends up in the two sets to estimate |M_k|/|M_{k-1}|.
+  Do for all k and multiply out to get estimate of |M_n|.  
+  |M_1| is easy: it's just m.
+
+* To get a good estimate, we need:
+  (A) M_k is not much larger than M_{k-1}: easy to see it's at most a
+        factor of n^2 larger.
+  (B) M_k is not too much (at most a factor n^2) SMALLER than M_{k-1}:
+	Uses fact that graph has large degree. Basically, for any y
+	in M_{k-1}, there must be a nearby x in M_k.  Specifially, 
+	pick two unmatched vertices u and v.  If they are neighbors,
+	then done.  Else there must be a neighbor of u and a neighbor
+	of v that are matched together in y, so remove that edge and
+	add the two new ones.
+
+* In fact, will just look at M_n and M_{n-1}.  Turns out we can reduce
+  the problem of random sampling M_k U M_{k-1} in graph G to the problem
+  of sampling M_n' U M_{n'-1} in some appropriately-defined n' by n'
+  bipartite graph G'.  (See exercise 11.11.)
+  [[Specifically, add n-k new vertices to X and connect these each to
+  all the old vertices in Y.  Similarly add n-k new vertices to Y and
+  connect these to all the old vertices in X. Then, can use results
+  from walk on perfect and near-perfect matchings of G' to calculate
+the desired quantity for G.]]
+
+Now: define a random walk on M_n U M_{n-1}.  So, this is a big
+graph where each perfect or near-perfect matching is a node.
+
+* Here's the walk:
+
+   * with 1/2 prob, we stay put.
+   * with 1/2 prob, we pick a random edge e in the graph G:
+        REDUCE: if current state is in M_n and e is IN the matching, then
+                remove e (going into M_{n-1})
+        ROTATE: if in M_{n-1} and e has one matched endpoint and one
+                unmatched, then insert e and remove the other edge.
+        AUGMENT: if in M_{n-1} and neither endpoint of e is matched,
+                then add e (going into M_n).
+
+        otherwise, stay put.
+
+
+Go through example on K_{2,2}  (See p.321 of the text).
+                                   *  *
+                 *---*               /
+                                    /
+                 *   *             *  *
+   *---*                                        *  *
+                                                 \/
+   *---*                                         /\
+                                                *  *
+
+                 *   *             *  *
+                                    \
+                 *---*               \
+                                   *  *
+Claim: for any states i,j Pr(i-->j) = Pr(j-->i).  Why?
+
+        (in particular, if the probability is non-zero, then it's 1/2m)
+
+Claim: stationary distribution is uniform.
+--> since symmetric, both row and column sums are 1 (called "doubly
+    stochastic"), so uniform dist is stationary.
+
+Also, easy to see it's aperiodic.  So, all that's left is to figure
+out how fast we converge to uniform.  To do this, we want to bound the
+second-eigenvalue away from 1.
+
+Note: our goal is weaker than that of explicit construction of
+expanders.  We have a walk on N (which is exponential in n) states,
+and unlike the case of expanders, 
+1) It's ok that our graph has degree O(n), and not constant.
+2) Just need 1-lambda_2 >= 1/poly(n)
+
+(Or, in terms of N, we want an expander, but allowing polylog(N)
+degree and 1/polylog(N) eigenvalue separation.  This is easier than
+getting both of these constant.)
+
+(Once we get this gap, can run walk poly(n) steps to get very close to
+stationary distrib.  Not hard to see that "very close" is good enough.)
+
+Will show eigenvalue gap by showing that the graph has edge expansion,
+weighted according to pi.  Called "high conductance" of Markov chain.
+
+
+* Capacity(S) C_S = sum_{i in S} pi_i.
+  (prob of being in S according to pi.  --> measure of size of S)
+
+* flow(S) = sum_{i in S, j not in S} w_ij, 
+  where w_ij = (pi_i)*(p_ij) = prob of being on edge i->j in pi.
+  (measure of # edges leaving S).
+
+* Conductance Phi = min_{S: C_S <= 1/2} Phi_S
+              Phi_S = flow(S)/capacity(S).
+
+E.g., in our case, pi_i = 1/N, p_ij = 1/2m, so w_ij = 1/(2mN).
+Phi_S = (1/2m)(# edges leaving S)/|S|
+
+N = number of states in the Markov chain.
+n = number of vertices in original bipartite graph, and m = # edges.
+
+Goal is conductance >= 1/poly(n).
+
+==========================================================================
+
+Show high conductance (edge expansion) via "canonical path method".
+
+* For every pair of states (u,v), we'll define a canonical path from u to v.
+
+* Show that the number of paths through any given transition is at most bN.
+
+* This means the number of edges leaving S (|S|<= N/2) is at least
+        |S|(N-|S|)/(bN) >= |S|/2b,
+  and (# edges leaving S)/|S| >= 1/2b.
+
+ So, if b is const or poly(n), we're done.
+
+===========================================================================
+Illustrate by showing that boolean cube has edge-expansion  (random
+walk has high conductance).
+
+* State space is {0,1}^n.
+
+* N = 2^n, degree = n = log(N).
+
+* For two vertices (v,w), define path P(v,w): flip bits that differ from
+  left to right.
+
+Claim: no transition is contained in more than N/2 canonical paths.
+
+Proof:  (ASK). 
+
+  Think of some transition T:  01011010
+                           ->  01011110
+
+  What paths can possibly include this transition?  Must be from some
+  point of the form:           *****010
+  to some point of the form:   010111**
+
+  Number of such pairs is at most (2^n)/2 = N/2.
+
+So, all sets S of size at most N/2 have (# edges leaving S)/|S| >= 1.
+
+So, conductance Phi_S = sum(pi_i * p_ij) / sum(pi_i) >= 1/(2n)
+
+(given that you're at a random point in S, you have prob at least 1/2n
+of getting out.)
+==========================================================================
+
+Now, back to the Markov chain for the Permanent.
+
+Need to specify canonical path between two states s and t.  In fact,
+we'll only need to worry about the case that s and t are both perfect
+matchings.  [[Do this only if there's time]] We can then handle the
+near-perfect matchings as follows: 
+
+        We argued earlier that (given our condition of the min degree at
+        least n/2) we can associate every near-perfect matching to some
+        perfect matching such that no perfect matching has more than n+n^2
+        near-perfect matchings associated to it.  So, if s and/or t is a
+        near-perfect matching, we can just first move to the perfect matching
+        associated to s, then take the canonical path to the perfect matching
+        associated to t, and then go to t.
+
+The canonical path is just the following: look at the symmetric
+difference of s and t.  This is just a collection of disjoint cycles.
+To go from s to t, we will "unwind" each of these cycles in some
+canonical order -- say, doing the cycle containing the vertex of least
+index first, and so on.  "Unwinding" a cycle corresponds to doing one
+Reduce operation, then a sequence of Rotates, and then finally one Augment.
+We can just pick some arbitrary canonical starting point and direction
+for this unwinding (say, Reduce the edge containing the vertex of
+least index, and then Rotate in the direction of that vertex). 
+
+Theorem: At most N canonical paths between perfect matchings use any
+given transition T.  (b=1)
+
+(Note: this implies that at most O(n^4*N) canonical paths include T
+when you also count the near-perfect matchings.)
+
+(remember Phi_S = (1/2m)(# edges leaving S)/|S|, and now we have that
+	(# edges leaving S)/|S| is >= 1/(n^4).)
+
+
+Proof:
+
+[[Basically idea is: given T (say T is the transition u-->v), if we
+also knew s U t, then we could reconstruct which part is s and which
+part is t, by using our canonical ordering. And, we can encode s U t
+with a perfect or near-perfect matching p, which means there must be
+at most N such pairs. E.g., if T is reduce, then part of u looks like
+s and part of u looks like t, so just want p to look like t on the
+first portion and look like s on the second portion (and also include
+edges where s and t are the same just to make p be a perfect matching)]]
+
+We'll show that given a transition T (say T is the transition u-->v),
+for any pair (s,t) whose path goes through T, we can associate a
+perfect or near-perfect matching p, such that given p and T we can
+recover s and t.  I.e., our mapping is 1-1.  This means that there can
+be at most N such pairs (s,t).
+
+The easier cases are when T is a Reduce or Augment transition. Formally, 
+        if T is Reduce, then p = s XOR t XOR u, and
+        if T is Augment then p = s XOR t XOR v.
+Informally, p is just the portion of (s U t) missing from (u U v)
+(where we've included the edges where s=t just to make p into a
+perfect matching).
+
+Given p and T, it's easy to see that we can recover (s U t).  We can
+then split this into s and t by using the canonical ordering (and u
+and v).
+
+The rotate case is slightly more complicated since the portion of (s U
+t) missing from (u U v) (formally: s XOR t XOR (u U v)) is not a
+matching: it has one vertex of degree 2.  But, all we have to do is to
+remove the edge (of s) that was the initial edge removed in the Reduce
+operation for this cycle.  Then, when we reconstruct, we will have all
+of (s U t), except for this edge.  But, that's OK, because when we
+see the path corresponding to the cycle minus this edge, we will know
+that we can just reconstruct the cycle by connecting together the two
+endpoints of the path.
+
+So, that does it.
